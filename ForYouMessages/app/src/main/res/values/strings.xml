@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">For You Messages</string>
+    <string name="action_settings">Settings</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="first_fragment_label">First Fragment</string>
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+
+    <string name="hello_first_fragment">Hello first fragment</string>
+    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
+
+    <string name="app_intro">This app uses asymmetric encryption to encrypt message files.  The app starts by creating user\'s public key and private key.  If the user wants to send a message to another user, he needs to ask for the other user\'s public key.  The user can encrypt a message text file with a password of certain length.  The app then encrypts the file with the public key of the target user and send the file to the target user.  The target user can then use his private key to decrypt the file.  But the file is still password protected.  The target user needs to know the password to read the file.</string>
+    <string name="button_create_keys">Create Keys</string>
+    <string name="button_ask_for_public_key">Ask For Public Key</string>
+    <string name="button_write_message">Write Message</string>
+    <string name="login">Login</string>
+    <string name="send">Send</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="create_account">Create Account</string>
+    <string name="confirm_password">Confirm Password:</string>
+    <string name="password">Password:</string>
+    <string name="phone_number">Phone Number:</string>
+    <string name="name">Name:</string>
+    <string name="email">Email:</string>
+</resources>

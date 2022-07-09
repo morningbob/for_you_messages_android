@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "114258095849",
+    "project_id": "for-you-messages",
+    "storage_bucket": "for-you-messages.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:114258095849:android:c6a27d70ba3eeab06e4a78",
+        "android_client_info": {
+          "package_name": "com.bitpunchlab.android.foryoumessages"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "114258095849-vqs7bgoqutuof35uut09fr5tm93k7t55.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCB21AoBXPj7u7fEesUfkEHWD-JHr6wymw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "114258095849-vqs7bgoqutuof35uut09fr5tm93k7t55.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
