@@ -8,4 +8,5 @@
     <dimen name="edittext_left_right_margin">40dp</dimen>
     <dimen name="title_content_left_right_margin">50dp</dimen>
     <dimen name="button_text_size">22sp</dimen>
+    <dimen name="error_text_size">18sp</dimen>
 </resources>

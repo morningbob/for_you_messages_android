@@ -56,6 +56,18 @@
                 />
 
             <TextView
+                android:id="@+id/textview_name_error"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="0dp"
+                android:layout_marginLeft="@dimen/title_content_left_right_margin"
+                android:text="@={firebaseClient.nameError}"
+                app:layout_constraintStart_toStartOf="parent"
+                android:textSize="@dimen/error_text_size"
+                app:layout_constraintTop_toBottomOf="@id/edittext_name"
+                tools:layout_editor_absoluteX="232dp" />
+
+            <TextView
                 android:id="@+id/textview_email"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -64,7 +76,7 @@
                 android:text="@string/email"
                 app:layout_constraintStart_toStartOf="parent"
                 android:textSize="@dimen/title_content_text_size"
-                app:layout_constraintTop_toBottomOf="@id/edittext_name"
+                app:layout_constraintTop_toBottomOf="@id/textview_name_error"
                 tools:layout_editor_absoluteX="232dp" />
 
             <EditText
@@ -80,6 +92,18 @@
                 />
 
             <TextView
+                android:id="@+id/textview_email_error"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="0dp"
+                android:layout_marginLeft="@dimen/title_content_left_right_margin"
+                android:text="@={firebaseClient.emailError}"
+                app:layout_constraintStart_toStartOf="parent"
+                android:textSize="@dimen/error_text_size"
+                app:layout_constraintTop_toBottomOf="@id/edittext_email"
+                tools:layout_editor_absoluteX="232dp" />
+
+            <TextView
                 android:id="@+id/textview_login_phone_no"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -88,7 +112,7 @@
                 android:text="@string/phone_number"
                 app:layout_constraintStart_toStartOf="parent"
                 android:textSize="@dimen/title_content_text_size"
-                app:layout_constraintTop_toBottomOf="@id/edittext_email"
+                app:layout_constraintTop_toBottomOf="@id/textview_email_error"
                 tools:layout_editor_absoluteX="232dp" />
 
             <EditText
@@ -104,6 +128,18 @@
                 />
 
             <TextView
+                android:id="@+id/textview_phone_error"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginLeft="@dimen/title_content_left_right_margin"
+                android:text="@={firebaseClient.phoneError}"
+                app:layout_constraintStart_toStartOf="parent"
+                android:textSize="@dimen/error_text_size"
+                app:layout_constraintTop_toBottomOf="@id/edittext_phone_no"
+                tools:layout_editor_absoluteX="232dp" />
+
+            <TextView
                 android:id="@+id/textview_password"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -112,7 +148,7 @@
                 android:text="@string/password"
                 app:layout_constraintStart_toStartOf="parent"
                 android:textSize="@dimen/title_content_text_size"
-                app:layout_constraintTop_toBottomOf="@id/edittext_phone_no"
+                app:layout_constraintTop_toBottomOf="@id/textview_phone_error"
                 tools:layout_editor_absoluteX="232dp" />
 
             <EditText
@@ -128,6 +164,18 @@
                 />
 
             <TextView
+                android:id="@+id/textview_password_error"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="0dp"
+                android:layout_marginLeft="@dimen/title_content_left_right_margin"
+                android:text="@={firebaseClient.passwordError}"
+                app:layout_constraintStart_toStartOf="parent"
+                android:textSize="@dimen/error_text_size"
+                app:layout_constraintTop_toBottomOf="@id/edittext_password"
+                tools:layout_editor_absoluteX="232dp" />
+
+            <TextView
                 android:id="@+id/textview_confirm_password"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -136,7 +184,7 @@
                 android:text="@string/confirm_password"
                 app:layout_constraintStart_toStartOf="parent"
                 android:textSize="@dimen/title_content_text_size"
-                app:layout_constraintTop_toBottomOf="@id/edittext_password"
+                app:layout_constraintTop_toBottomOf="@id/textview_password_error"
                 tools:layout_editor_absoluteX="232dp" />
 
             <EditText
@@ -151,6 +199,18 @@
                 app:layout_constraintTop_toBottomOf="@id/textview_confirm_password"
                 />
 
+            <TextView
+                android:id="@+id/textview_confirm_password_error"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="0dp"
+                android:layout_marginLeft="@dimen/title_content_left_right_margin"
+                android:text="@={firebaseClient.confirmPasswordError}"
+                app:layout_constraintStart_toStartOf="parent"
+                android:textSize="@dimen/error_text_size"
+                app:layout_constraintTop_toBottomOf="@id/edittext_confirm_password"
+                tools:layout_editor_absoluteX="232dp" />
+
             <Button
                 android:id="@+id/button_send"
                 android:layout_width="wrap_content"
@@ -158,9 +218,10 @@
                 android:layout_marginTop="20dp"
                 android:text="@string/send"
                 android:textSize="@dimen/button_text_size"
+                android:visibility="invisible"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/edittext_confirm_password" />
+                app:layout_constraintTop_toBottomOf="@id/textview_confirm_password_error" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
