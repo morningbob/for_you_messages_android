@@ -1,10 +1,12 @@
 package com.bitpunchlab.android.foryoumessages.firebaseClient
 
 import android.app.Activity
+import android.telephony.PhoneNumberUtils
 import android.util.Log
 import android.util.Patterns
 import androidx.lifecycle.*
 import com.bitpunchlab.android.foryoumessages.CreateAccountAppState
+import com.bitpunchlab.android.foryoumessages.LoginAppState
 import com.bitpunchlab.android.foryoumessages.models.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
@@ -20,34 +22,34 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     // these variables relates to login and create account interface's edittext fields
     // and the errors associated with them.
 
-    var _userName = MutableLiveData<String>()
+    var _userName = MutableLiveData<String>("")
     val userName get() = _userName
 
-    var _userEmail = MutableLiveData<String>()
+    var _userEmail = MutableLiveData<String>("")
     val userEmail get() = _userEmail
 
-    var _userPhone = MutableLiveData<String>()
+    var _userPhone = MutableLiveData<String>("")
     val userPhone get() = _userPhone
 
-    var _userPassword = MutableLiveData<String>()
+    var _userPassword = MutableLiveData<String>("")
     val userPassword get() = _userPassword
 
-    var _userConfirmPassword = MutableLiveData<String>()
+    var _userConfirmPassword = MutableLiveData<String>("")
     val userConfirmPassword get() = _userConfirmPassword
 
-    var _nameError = MutableLiveData<String>()
+    var _nameError = MutableLiveData<String>("")
     val nameError get() = _nameError
 
-    var _emailError = MutableLiveData<String>()
+    var _emailError = MutableLiveData<String>("")
     val emailError get() = _emailError
 
-    var _phoneError = MutableLiveData<String>()
+    var _phoneError = MutableLiveData<String>("")
     val phoneError get() = _phoneError
 
-    var _passwordError = MutableLiveData<String>()
+    var _passwordError = MutableLiveData<String>("")
     val passwordError get() = _passwordError
 
-    var _confirmPasswordError = MutableLiveData<String>()
+    var _confirmPasswordError = MutableLiveData<String>("")
     val confirmPasswordError get() = _confirmPasswordError
 
     var _allValid = MutableLiveData<ArrayList<Int>>()
@@ -55,36 +57,13 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     var auth : FirebaseAuth = FirebaseAuth.getInstance()
 
-    var _registerSuccess = MutableLiveData<Boolean>()
-    val registerSuccess get() = _registerSuccess
-
     var _createAccountAppState = MutableLiveData<CreateAccountAppState>(CreateAccountAppState.NORMAL)
     val createAccountAppState get() = _createAccountAppState
 
+    var _loginAppState = MutableLiveData<LoginAppState>(LoginAppState.NORMAL)
+    val loginAppState get() = _loginAppState
+
     private var database : DatabaseReference = Firebase.database.reference
-
-    init {
-        _allValid.value = arrayListOf(0,0,0,0,0)
-
-        // we create a user object and save in firebase database
-        registerSuccess.observe(activity.applicationContext as LifecycleOwner, Observer { success ->
-            if (success) {
-
-            }
-        })
-
-        createAccountAppState.observe(activity.applicationContext as LifecycleOwner, Observer { appState ->
-            when (appState) {
-                CreateAccountAppState.REGISTER_SUCCESS -> {
-                    // now, we can save the user in database
-                    createAndSaveNewUser(userName.value!!, userEmail.value!!, userPhone.value!!)
-                }
-                else -> {
-
-                }
-            }
-        })
-    }
 
     // whenever user is filling in one field, that field checks for its validity.
     // only if it is valid will the ready to create live data check if all fields are valid
@@ -118,11 +97,16 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         }
     }
 
+    // should be at least 10 number and max 15, I think
     private val phoneValid: LiveData<Boolean> = MediatorLiveData<Boolean>().apply {
         addSource(userPhone) { phone ->
             if (phone.isNullOrEmpty()) {
                 phoneError.value = "Phone number must not be empty."
                 value = false
+            } else if (phone.count() < 10 || phone.count() > 13)
+                phoneError.value = "Phone number should be at least 10 number and maximum 13 number."
+            else if (!isPhoneValid(phone)) {
+                phoneError.value = "Phone number is not valid."
             } else {
                 value = true
                 phoneError.value = ""
@@ -153,58 +137,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         }
     }
 
-    // we'll set allValid a 1 entry if the field is valid
-    // we also check if other fields are also valid by checking if the allValid arraylist sum to 5
-    // if this is the case, we set this readyRegisterLiveData to true, that is ready to register the user
-    // this approach minimize the times the program test all 5 fields
-    var readyRegisterLiveData: LiveData<Boolean> = MediatorLiveData<Boolean>().apply {
-        addSource(nameValid) { valid ->
-            if (valid) {
-                allValid.value?.set(0, 1)
-                // check other fields validity
-                value = checkIfAllValid()
-            } else {
-                allValid.value?.set(0, 0)
-            }
-        }
-        addSource(emailValid) { valid ->
-            if (valid) {
-                allValid.value?.set(1, 1)
-                // check other fields validity
-                value = checkIfAllValid()
-            } else {
-                allValid.value?.set(1, 0)
-            }
-        }
-        addSource(phoneValid) { valid ->
-            if (valid) {
-                allValid.value?.set(2, 1)
-                // check other fields validity
-                value = checkIfAllValid()
-            } else {
-                allValid.value?.set(2, 0)
-            }
-        }
-        addSource(passwordValid) { valid ->
-            if (valid) {
-                allValid.value?.set(3, 1)
-                // check other fields validity
-                value = checkIfAllValid()
-            } else {
-                allValid.value?.set(3, 0)
-            }
-        }
-        addSource(confirmPasswordValid) { valid ->
-            if (valid) {
-                allValid.value?.set(4, 1)
-                // check other fields validity
-                value = checkIfAllValid()
-            } else {
-                allValid.value?.set(4, 0)
-            }
-        }
-    }
-
     private val confirmPasswordValid: LiveData<Boolean> = MediatorLiveData<Boolean>().apply {
         addSource(userConfirmPassword) { confirmPassword ->
             if (!confirmPassword.isNullOrEmpty()) {
@@ -222,8 +154,97 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         }
     }
 
+    var readyRegisterLiveData = MediatorLiveData<Boolean>()
+    var readyLoginLiveData = MediatorLiveData<Boolean>()
+
+    init {
+        _allValid.value = arrayListOf(0,0,0,0,0)
+
+        // we'll set allValid a 1 entry if the field is valid
+        // we also check if other fields are also valid by checking if the allValid arraylist sum to 5
+        // if this is the case, we set this readyRegisterLiveData to true, that is ready to register the user
+        // this approach minimize the times the program test all 5 fields
+        readyRegisterLiveData.addSource(nameValid) { valid ->
+            readyRegisterLiveData.value = if (valid) {
+                allValid.value?.set(0, 1)
+                // check other fields validity
+                checkIfAllValid()
+            } else {
+                allValid.value?.set(0, 0)
+                false
+            }
+        }
+        readyRegisterLiveData.addSource(emailValid) { valid ->
+            if (valid) {
+                allValid.value?.set(1, 1)
+                // check other fields validity
+                readyRegisterLiveData.value = checkIfAllValid()
+            } else {
+                allValid.value?.set(1, 0)
+                readyRegisterLiveData.value = false
+            }
+        }
+        readyRegisterLiveData.addSource(phoneValid) { valid ->
+            if (valid) {
+                allValid.value?.set(2, 1)
+                // check other fields validity
+                readyRegisterLiveData.value = checkIfAllValid()
+            } else {
+                allValid.value?.set(2, 0)
+                readyRegisterLiveData.value = false
+            }
+        }
+        readyRegisterLiveData.addSource(passwordValid) { valid ->
+            if (valid) {
+                allValid.value?.set(3, 1)
+                // check other fields validity
+                readyRegisterLiveData.value = checkIfAllValid()
+            } else {
+                allValid.value?.set(3, 0)
+                readyRegisterLiveData.value = false
+            }
+        }
+        readyRegisterLiveData.addSource(confirmPasswordValid) { valid ->
+            if (valid) {
+                allValid.value?.set(4, 1)
+                // check other fields validity
+                readyRegisterLiveData.value = checkIfAllValid()
+            } else {
+                allValid.value?.set(4, 0)
+                readyRegisterLiveData.value = false
+            }
+        }
+
+        readyLoginLiveData.addSource(emailValid) { valid ->
+            if (valid) {
+                //allValid.value?.set(1, 1)
+                // check other fields validity
+                readyLoginLiveData.value = passwordValid.value
+            } else {
+                //allValid.value?.set(1, 0)
+                readyLoginLiveData.value = false
+            }
+        }
+
+        readyLoginLiveData.addSource(passwordValid) { valid ->
+            if (valid) {
+                //allValid.value?.set(1, 1)
+                // check other fields validity
+                readyLoginLiveData.value = emailValid.value
+            } else {
+                //allValid.value?.set(1, 0)
+                readyLoginLiveData.value = false
+            }
+        }
+
+    }
+
     private fun isEmailValid(email: String) : Boolean {
         return Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    }
+
+    private fun isPhoneValid(phone: String) : Boolean {
+        return PhoneNumberUtils.isGlobalPhoneNumber(phone)
     }
 
     private fun isPasswordValid(password: String) : Boolean {
@@ -255,11 +276,10 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 if (task.isSuccessful) {
                     // alert success
                     Log.i("register user", "success")
-                    //registerSuccess.postValue(true)
                     createAccountAppState.postValue(CreateAccountAppState.REGISTER_SUCCESS)
                 } else {
                     Log.i("register user", "there is error")
-                    //registerSuccess.postValue(false)
+                    createAccountAppState.postValue(CreateAccountAppState.REGISTER_ERROR)
                 }
             }
     }
@@ -270,12 +290,15 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         userPhone.value = ""
         userPassword.value = ""
         userConfirmPassword.value = ""
+        nameError.value = ""
+        emailError.value = ""
+        phoneError.value = ""
+        passwordError.value = ""
+        confirmPasswordError.value = ""
     }
 
-    private fun createAndSaveNewUser(name: String, email: String, phone: String) {
-
-        saveUserInDatabase(createUser(name, email, phone))
-        //database.child("users")
+    fun createAndSaveNewUser() {
+        saveUserInDatabase(createUser(userName.value!!, userEmail.value!!, userPhone.value!!))
     }
 
     private fun createUser(name: String, email: String, phone: String) : User {
@@ -286,9 +309,29 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         database.child("users").child(newUser.userID).setValue(newUser)
             .addOnCompleteListener(activity) { task ->
                 if (task.isSuccessful) {
-
+                    Log.i("save user in database", "success")
+                } else {
+                    Log.i("save user in database", "failure")
                 }
             }
+    }
+
+    fun authenticateUser() {
+        auth.signInWithEmailAndPassword(userEmail.value!!, userPassword.value!!)
+            .addOnCompleteListener(activity) { task ->
+                if (task.isSuccessful) {
+                    Log.i("signIn user", "success")
+                    loginAppState.postValue(LoginAppState.LOGGED_IN)
+                } else {
+                    Log.i("signIn user", "error")
+                    loginAppState.postValue(LoginAppState.LOGIN_ERROR)
+                }
+            }
+    }
+
+    fun logoutUser() {
+        auth.signOut()
+        loginAppState.value = LoginAppState.LOGGED_OUT
     }
 
 }

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/createAccountFragment">
+    app:startDestination="@id/LoginFragment">
 
     <fragment
         android:id="@+id/MainFragment"
@@ -12,18 +12,21 @@
         tools:layout="@layout/fragment_main">
 
         <action
-            android:id="@+id/action_FirstFragment_to_SecondFragment"
+            android:id="@+id/action_MainFragment_to_LoginFragment"
             app:destination="@id/LoginFragment" />
     </fragment>
     <fragment
         android:id="@+id/LoginFragment"
         android:name="com.bitpunchlab.android.foryoumessages.account.LoginFragment"
-        android:label="@string/second_fragment_label"
+        android:label="Login Page"
         tools:layout="@layout/fragment_login">
 
         <action
-            android:id="@+id/action_SecondFragment_to_FirstFragment"
+            android:id="@+id/action_LoginFragment_to_MainFragment"
             app:destination="@id/MainFragment" />
+        <action
+            android:id="@+id/action_LoginFragment_to_createAccountFragment"
+            app:destination="@id/createAccountFragment" />
     </fragment>
     <fragment
         android:id="@+id/createAccountFragment"

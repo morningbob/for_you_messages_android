@@ -4,12 +4,16 @@ import android.os.Bundle
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Log
+import android.view.*
 import androidx.fragment.app.Fragment
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.ui.NavigationUI
 import com.bitpunchlab.android.foryoumessages.databinding.FragmentMainBinding
+import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
+import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModelFactory
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
@@ -21,16 +25,21 @@ private const val KEY_ALIAS = "mainYou"
 class MainFragment : Fragment() {
 
     private var _binding: FragmentMainBinding? = null
-
-
     private val binding get() = _binding!!
+    private lateinit var firebaseClient: FirebaseClientViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
 
+        setHasOptionsMenu(true)
+
         _binding = FragmentMainBinding.inflate(inflater, container, false)
+        firebaseClient = ViewModelProvider(requireActivity(), FirebaseClientViewModelFactory(requireActivity()))
+            .get(FirebaseClientViewModel::class.java)
+
+        firebaseClient.loginAppState.observe(viewLifecycleOwner, loginAppStateObserver)
 
         return binding.root
 
@@ -45,6 +54,10 @@ class MainFragment : Fragment() {
             Log.i("Key Pair, private: ", keyPair?.private.toString())
             Log.i("Key Pair, public: ", keyPair?.public.toString())
         }
+
+        binding.buttonLogout.setOnClickListener {
+            firebaseClient.logoutUser()
+        }
     }
 
     override fun onDestroyView() {
@@ -52,6 +65,30 @@ class MainFragment : Fragment() {
         _binding = null
     }
 
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.menu_main, menu)
+        super.onCreateOptionsMenu(menu, inflater)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.logout -> {
+                firebaseClient.logoutUser()
+                findNavController().popBackStack()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+/*
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return NavigationUI.onNavDestinationSelected(item,
+            requireView().findNavController())
+                || super.onOptionsItemSelected(item)
+    }
+
+
+ */
     private fun generateKeys() {
 
     }
@@ -86,6 +123,19 @@ class MainFragment : Fragment() {
             KeyPair(publicKey, privateKey)
         } else {
             null
+        }
+    }
+
+    private var loginAppStateObserver = Observer<LoginAppState> { appState ->
+        when (appState) {
+            LoginAppState.LOGGED_OUT -> {
+                // return to login page, or pop off self
+                //findNavController().navigate(R.id.action_MainFragment_to_LoginFragment)
+                findNavController().popBackStack()
+            }
+            else -> {
+
+            }
         }
     }
 }

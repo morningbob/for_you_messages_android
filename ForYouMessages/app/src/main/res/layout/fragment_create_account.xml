@@ -13,12 +13,24 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true" >
+        android:fillViewport="true"
+        android:background="@color/blue_background">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             tools:context=".account.createAccountFragment">
+
+            <ImageView
+                android:id="@+id/art_create_account"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_marginTop="50dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:srcCompat="@drawable/adduser"
+                tools:srcCompat="@drawable/adduser" />
 
             <TextView
                 android:id="@+id/textview_login_title"
@@ -29,7 +41,7 @@
                 android:textSize="@dimen/title_text_size"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toBottomOf="@id/art_create_account" />
 
             <TextView
                 android:id="@+id/textview_name"
@@ -61,7 +73,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="0dp"
                 android:layout_marginLeft="@dimen/title_content_left_right_margin"
+                android:layout_marginRight="@dimen/title_content_left_right_margin"
                 android:text="@={firebaseClient.nameError}"
+                android:textColor="@color/orange"
                 app:layout_constraintStart_toStartOf="parent"
                 android:textSize="@dimen/error_text_size"
                 app:layout_constraintTop_toBottomOf="@id/edittext_name"
@@ -97,7 +111,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="0dp"
                 android:layout_marginLeft="@dimen/title_content_left_right_margin"
+                android:layout_marginRight="@dimen/title_content_left_right_margin"
                 android:text="@={firebaseClient.emailError}"
+                android:textColor="@color/orange"
                 app:layout_constraintStart_toStartOf="parent"
                 android:textSize="@dimen/error_text_size"
                 app:layout_constraintTop_toBottomOf="@id/edittext_email"
@@ -122,6 +138,7 @@
                 android:layout_marginTop="0dp"
                 android:text="@={firebaseClient.userPhone}"
                 android:textSize="@dimen/title_content_edittext_size"
+                android:inputType="phone"
                 android:layout_marginLeft="@dimen/edittext_left_right_margin"
                 android:layout_marginRight="@dimen/edittext_left_right_margin"
                 app:layout_constraintTop_toBottomOf="@id/textview_login_phone_no"
@@ -133,7 +150,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:layout_marginLeft="@dimen/title_content_left_right_margin"
+                android:layout_marginRight="@dimen/title_content_left_right_margin"
                 android:text="@={firebaseClient.phoneError}"
+                android:textColor="@color/orange"
                 app:layout_constraintStart_toStartOf="parent"
                 android:textSize="@dimen/error_text_size"
                 app:layout_constraintTop_toBottomOf="@id/edittext_phone_no"
@@ -158,6 +177,7 @@
                 android:layout_marginTop="0dp"
                 android:textSize="@dimen/title_content_edittext_size"
                 android:text="@={firebaseClient.userPassword}"
+                android:inputType="textPassword"
                 android:layout_marginLeft="@dimen/edittext_left_right_margin"
                 android:layout_marginRight="@dimen/edittext_left_right_margin"
                 app:layout_constraintTop_toBottomOf="@id/textview_password"
@@ -169,7 +189,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="0dp"
                 android:layout_marginLeft="@dimen/title_content_left_right_margin"
+                android:layout_marginRight="@dimen/title_content_left_right_margin"
                 android:text="@={firebaseClient.passwordError}"
+                android:textColor="@color/orange"
                 app:layout_constraintStart_toStartOf="parent"
                 android:textSize="@dimen/error_text_size"
                 app:layout_constraintTop_toBottomOf="@id/edittext_password"
@@ -194,6 +216,7 @@
                 android:layout_marginTop="0dp"
                 android:text="@={firebaseClient.userConfirmPassword}"
                 android:textSize="@dimen/title_content_edittext_size"
+                android:inputType="textPassword"
                 android:layout_marginLeft="@dimen/edittext_left_right_margin"
                 android:layout_marginRight="@dimen/edittext_left_right_margin"
                 app:layout_constraintTop_toBottomOf="@id/textview_confirm_password"
@@ -205,7 +228,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="0dp"
                 android:layout_marginLeft="@dimen/title_content_left_right_margin"
+                android:layout_marginRight="@dimen/title_content_left_right_margin"
                 android:text="@={firebaseClient.confirmPasswordError}"
+                android:textColor="@color/orange"
                 app:layout_constraintStart_toStartOf="parent"
                 android:textSize="@dimen/error_text_size"
                 app:layout_constraintTop_toBottomOf="@id/edittext_confirm_password"

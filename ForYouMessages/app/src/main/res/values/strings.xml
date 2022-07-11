@@ -24,4 +24,12 @@
     <string name="phone_number">Phone Number:</string>
     <string name="name">Name:</string>
     <string name="email">Email:</string>
+    <string name="login_failure_alert_title">Login Failure</string>
+    <string name="login_failure_alert_desc">There is error in the server.  Please try again later.</string>
+    <string name="registration_success_alert_title">Registration Success</string>
+    <string name="registration_success_alert_desc">You are registered!</string>
+    <string name="registration_failure_alert_title">Registration Failure</string>
+    <string name="registration_failure_alert_desc">There is error in the server.  Please try again later.</string>
+    <string name="ok">OK</string>
+    <string name="logout">Logout</string>
 </resources>

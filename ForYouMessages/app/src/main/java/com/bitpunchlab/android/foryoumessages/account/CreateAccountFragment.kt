@@ -1,5 +1,7 @@
 package com.bitpunchlab.android.foryoumessages.account
 
+import android.app.AlertDialog
+import android.content.DialogInterface
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -38,15 +40,8 @@ class CreateAccountFragment : Fragment() {
         binding.lifecycleOwner = viewLifecycleOwner
         binding.firebaseClient = firebaseClientViewModel
 
-        firebaseClientViewModel.readyRegisterLiveData.observe(viewLifecycleOwner, Observer { ready ->
-            if (ready) {
-                Log.i("ready register test", "ready")
-                binding.buttonSend.visibility = View.VISIBLE
-            } else {
-                Log.i("ready register test", "not ready")
-                binding.buttonSend.visibility = View.INVISIBLE
-            }
-        })
+        observeReadyRegister()
+        firebaseClientViewModel.createAccountAppState.observe(viewLifecycleOwner, createAccountAppStateObserver)
 
         binding.buttonSend.setOnClickListener {
             // register the user in Firebase Auth and Firebase Database
@@ -61,19 +56,68 @@ class CreateAccountFragment : Fragment() {
         _binding = null
     }
 
+    private fun observeReadyRegister() {
+        firebaseClientViewModel.readyRegisterLiveData.observe(viewLifecycleOwner, Observer { ready ->
+            ready?.let {
+                if (ready) {
+                    Log.i("ready register test", "ready")
+                    binding.buttonSend.visibility = View.VISIBLE
+                } else {
+                    Log.i("ready register test", "not ready")
+                    binding.buttonSend.visibility = View.INVISIBLE
+                }
+            }
+        })
+    }
+
     private val createAccountAppStateObserver = Observer<CreateAccountAppState> { appState ->
         when (appState) {
             CreateAccountAppState.NORMAL -> 0
             CreateAccountAppState.READY_REGISTER -> 1
             CreateAccountAppState.REGISTER_SUCCESS -> {
                 // alert user of registration success
-                // reset fields
-                //firebaseClientViewModel.resetAllFields()
+                registerSuccessAlert()
+                firebaseClientViewModel.createAndSaveNewUser()
+                firebaseClientViewModel.createAccountAppState.value = CreateAccountAppState.RESET
             }
-            CreateAccountAppState.RESET -> 2
+            CreateAccountAppState.REGISTER_ERROR -> {
+                registerErrorAlert()
+                firebaseClientViewModel.createAccountAppState.value = CreateAccountAppState.RESET
+            }
+            CreateAccountAppState.RESET -> {
+                firebaseClientViewModel.resetAllFields()
+            }
             else -> {
-                
+
             }
         }
+    }
+
+    private fun registerSuccessAlert() {
+        val successAlert = AlertDialog.Builder(requireContext())
+
+        successAlert.setTitle(getString(R.string.registration_success_alert_title))
+        successAlert.setMessage(getString(R.string.registration_success_alert_desc))
+
+        successAlert.setPositiveButton(getString(R.string.ok),
+            DialogInterface.OnClickListener { dialog, button ->
+                // do nothing
+            })
+
+        successAlert.show()
+    }
+
+    private fun registerErrorAlert() {
+        val errorAlert = AlertDialog.Builder(requireContext())
+
+        errorAlert.setTitle(getString(R.string.registration_failure_alert_title))
+        errorAlert.setMessage(getString(R.string.registration_failure_alert_desc))
+
+        errorAlert.setPositiveButton(getString(R.string.ok),
+            DialogInterface.OnClickListener { dialog, button ->
+                // do nothing
+            })
+
+        errorAlert.show()
     }
 }
