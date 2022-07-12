@@ -32,4 +32,5 @@
     <string name="registration_failure_alert_desc">There is error in the server.  Please try again later.</string>
     <string name="ok">OK</string>
     <string name="logout">Logout</string>
+    <string name="cancel">Cancel</string>
 </resources>

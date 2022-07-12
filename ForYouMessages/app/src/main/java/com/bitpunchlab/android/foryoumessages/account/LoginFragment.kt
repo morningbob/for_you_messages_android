@@ -50,6 +50,13 @@ class LoginFragment : Fragment() {
             }
         })
 
+        //firebaseClient.auth
+        firebaseClient.loggedIn.observe(viewLifecycleOwner, Observer { login ->
+            if (login) {
+
+            }
+        })
+
         binding.buttonSend.setOnClickListener {
             firebaseClient.authenticateUser()
         }
@@ -69,10 +76,10 @@ class LoginFragment : Fragment() {
                 // reset fields
                 firebaseClient.resetAllFields()
                 // navigate to main page of the app
-                Log.i("login observer", findNavController().currentDestination!!.id.toString())
-                if (findNavController().currentDestination?.id == R.id.LoginFragment) {
+                //Log.i("login observer", findNavController().currentDestination!!.id.toString())
+                //if (findNavController().currentDestination?.id == R.id.LoginFragment) {
                     findNavController().navigate(R.id.action_LoginFragment_to_MainFragment)
-                }
+                //}
             }
             LoginAppState.LOGIN_ERROR -> {
                 loginErrorAlert()

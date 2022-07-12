@@ -74,7 +74,7 @@ class MainFragment : Fragment() {
         return when (item.itemId) {
             R.id.logout -> {
                 firebaseClient.logoutUser()
-                findNavController().popBackStack()
+                firebaseClient.loginAppState.value = LoginAppState.LOGGED_OUT
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -131,6 +131,7 @@ class MainFragment : Fragment() {
             LoginAppState.LOGGED_OUT -> {
                 // return to login page, or pop off self
                 //findNavController().navigate(R.id.action_MainFragment_to_LoginFragment)
+                //findNavController().popBackStack()
                 findNavController().popBackStack()
             }
             else -> {

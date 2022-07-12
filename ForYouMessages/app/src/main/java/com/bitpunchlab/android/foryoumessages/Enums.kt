@@ -3,11 +3,11 @@ package com.bitpunchlab.android.foryoumessages
 enum class CreateAccountAppState {
     NORMAL,
     READY_REGISTER,
-    REGISTER_SUCCESS,
+    AUTH_REGISTRATION_SUCCESS,
     REGISTER_ERROR,
-    CREATED_AND_SAVED_USER,
+    REGISTRATION_SUCCESS,
     RESET,
-
+    LOGGED_IN
 }
 
 enum class LoginAppState {

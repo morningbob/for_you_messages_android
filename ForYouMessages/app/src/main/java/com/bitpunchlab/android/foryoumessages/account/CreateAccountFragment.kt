@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.fragment.findNavController
 import com.bitpunchlab.android.foryoumessages.CreateAccountAppState
 import com.bitpunchlab.android.foryoumessages.R
 import com.bitpunchlab.android.foryoumessages.databinding.FragmentCreateAccountBinding
@@ -74,21 +75,25 @@ class CreateAccountFragment : Fragment() {
         when (appState) {
             CreateAccountAppState.NORMAL -> 0
             CreateAccountAppState.READY_REGISTER -> 1
-            CreateAccountAppState.REGISTER_SUCCESS -> {
-                // alert user of registration success
-                registerSuccessAlert()
+            CreateAccountAppState.AUTH_REGISTRATION_SUCCESS -> {
                 firebaseClientViewModel.createAndSaveNewUser()
-                firebaseClientViewModel.createAccountAppState.value = CreateAccountAppState.RESET
             }
             CreateAccountAppState.REGISTER_ERROR -> {
                 registerErrorAlert()
                 firebaseClientViewModel.createAccountAppState.value = CreateAccountAppState.RESET
             }
+            CreateAccountAppState.REGISTRATION_SUCCESS -> {
+                // alert user of registration success
+                registerSuccessAlert()
+                firebaseClientViewModel.createAccountAppState.value = CreateAccountAppState.RESET
+            }
             CreateAccountAppState.RESET -> {
                 firebaseClientViewModel.resetAllFields()
+                firebaseClientViewModel.createAccountAppState.value = CreateAccountAppState.LOGGED_IN
             }
-            else -> {
-
+            CreateAccountAppState.LOGGED_IN -> {
+                // navigate to main fragment
+                findNavController().navigate(R.id.action_createAccountFragment_to_MainFragment)
             }
         }
     }

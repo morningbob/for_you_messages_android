@@ -6,7 +6,13 @@ class User {
     var userName : String = ""
     var userEmail : String = ""
     var userPhone : String = ""
-    var invites = HashMap<String, String>()
+    var contacts = emptyList<User>()
+    // we keep the record of the requests user issued
+    var requestedContacts = HashMap<String, Contact>()
+    // the list of users who accepted the user's request
+    var acceptedContacts = HashMap<String, Contact>()
+    // the list of invites the user got
+    var invites = HashMap<String, Contact>()
 
     constructor()
 

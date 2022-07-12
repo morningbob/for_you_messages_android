@@ -9,7 +9,10 @@ import com.bitpunchlab.android.foryoumessages.CreateAccountAppState
 import com.bitpunchlab.android.foryoumessages.LoginAppState
 import com.bitpunchlab.android.foryoumessages.models.User
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import java.util.regex.Pattern
@@ -64,6 +67,11 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     val loginAppState get() = _loginAppState
 
     private var database : DatabaseReference = Firebase.database.reference
+
+    var foundPhone = MutableLiveData<Boolean>(false)
+
+    var _loggedIn = MutableLiveData<Boolean>(false)
+    val loggedIn get() = _loggedIn
 
     // whenever user is filling in one field, that field checks for its validity.
     // only if it is valid will the ready to create live data check if all fields are valid
@@ -157,7 +165,17 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     var readyRegisterLiveData = MediatorLiveData<Boolean>()
     var readyLoginLiveData = MediatorLiveData<Boolean>()
 
+    private var authStateListener = FirebaseAuth.AuthStateListener { auth ->
+        //loggedIn.value = auth.currentUser != null
+        if (auth.currentUser != null) {
+            loginAppState.value = LoginAppState.LOGGED_IN
+        } else {
+
+        }
+    }
+
     init {
+        auth.addAuthStateListener(authStateListener)
         _allValid.value = arrayListOf(0,0,0,0,0)
 
         // we'll set allValid a 1 entry if the field is valid
@@ -217,11 +235,9 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
         readyLoginLiveData.addSource(emailValid) { valid ->
             if (valid) {
-                //allValid.value?.set(1, 1)
                 // check other fields validity
                 readyLoginLiveData.value = passwordValid.value
             } else {
-                //allValid.value?.set(1, 0)
                 readyLoginLiveData.value = false
             }
         }
@@ -265,10 +281,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         return allValid.value?.sum() == 5
     }
 
-    private var authStateListener = FirebaseAuth.AuthStateListener { auth ->
-
-    }
-
     fun registerNewUser() {
         // we already tested user email and password are valid
         auth.createUserWithEmailAndPassword(userEmail.value!!, userPassword.value!!)
@@ -276,7 +288,8 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 if (task.isSuccessful) {
                     // alert success
                     Log.i("register user", "success")
-                    createAccountAppState.postValue(CreateAccountAppState.REGISTER_SUCCESS)
+                    //saveUserInDatabase()
+                    createAccountAppState.postValue(CreateAccountAppState.AUTH_REGISTRATION_SUCCESS)
                 } else {
                     Log.i("register user", "there is error")
                     createAccountAppState.postValue(CreateAccountAppState.REGISTER_ERROR)
@@ -310,10 +323,29 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             .addOnCompleteListener(activity) { task ->
                 if (task.isSuccessful) {
                     Log.i("save user in database", "success")
+                    // now we can save the user's phone number in phone list
+                    savePhoneInDatabase(newUser.userPhone)
                 } else {
                     Log.i("save user in database", "failure")
+                    createAccountAppState.postValue(CreateAccountAppState.REGISTER_ERROR)
                 }
             }
+    }
+
+    private fun savePhoneInDatabase(phone: String) {
+        val keyID = database.push().key
+        keyID?.let { key ->
+            database.child("phones").child(key).setValue(phone)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        Log.i("save phone", "success")
+                        createAccountAppState.postValue(CreateAccountAppState.REGISTRATION_SUCCESS)
+                    } else {
+                        Log.i("save phone", "failed")
+                        createAccountAppState.postValue(CreateAccountAppState.REGISTER_ERROR)
+                    }
+                }
+        }
     }
 
     fun authenticateUser() {
@@ -332,6 +364,83 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     fun logoutUser() {
         auth.signOut()
         loginAppState.value = LoginAppState.LOGGED_OUT
+    }
+
+    // everytime we sign in the app, we retrieved user objects, which has the updated contacts
+    fun retrieveUserContacts() {
+
+    }
+
+    // before we can issue a request, we need to identify the target user
+    // we use phone number as the unique identifier.
+    // so, the user can input the phone number of the target user to search
+    // if he has an account in the database
+    // we'll be searching for the phone number list in the database
+    // if yes, we retrieve the target user object in the server only,
+    // and add the phone number in the invites list.
+
+    // issue request, need to be accepted by the party
+    // here we put the user's contact id into the target's invites list
+    // when the target is online, the app will check his invites list and notify him
+    fun requestContact(phone: String) {
+        // we reset the foundValue here to make sure it reflects the result
+        foundPhone.value = false
+        // here we start to observe foundPhone
+        foundPhone.observe(activity as LifecycleOwner, Observer { found ->
+            if (found) {
+                // proceed with making the request
+
+            }
+        })
+        //database.child("phones")
+        searchPhone(phone)
+
+    }
+
+    private var phoneValueEventListener = object : ValueEventListener {
+        override fun onDataChange(snapshot: DataSnapshot) {
+            if (snapshot.children.count() > 0) {
+                // we expect that map run only once, because there should be only
+                // one result.  The phone number should be unique.
+                snapshot.children.map { phoneSnapshot ->
+                    foundPhone.postValue(true)
+                    Log.i("phone listener", "found the phone")
+                }
+            }
+        }
+
+        override fun onCancelled(error: DatabaseError) {
+
+        }
+
+    }
+
+    private fun searchPhone(phone: String) {
+        database.child("phones")
+            .orderByValue()
+            .equalTo(phone)
+            .addListenerForSingleValueEvent(phoneValueEventListener)
+    }
+
+    // there should be a list of accepted request
+    // in the list, we add the contact to contact list and save to database
+    // notify user the request was accepted
+    fun addContact() {
+
+    }
+
+    // add to the contact list of the user
+    // here we need to update the original user's accepted request
+    // and notify the original user
+    // we also add the user's contact into the original user's contact list
+    fun acceptInvite() {
+
+    }
+
+    // here we need to update the original user's requestedContacts list, delete it
+    // and notify the original user
+    fun rejectInvite() {
+
     }
 
 }
