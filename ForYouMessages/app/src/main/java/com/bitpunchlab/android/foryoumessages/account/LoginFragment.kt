@@ -23,6 +23,7 @@ class LoginFragment : Fragment() {
     private var _binding: FragmentLoginBinding? = null
     private val binding get() = _binding!!
     private lateinit var firebaseClient: FirebaseClientViewModel
+    private var shouldNavigateToMainFragment = true
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -73,12 +74,17 @@ class LoginFragment : Fragment() {
         when (appState) {
             LoginAppState.NORMAL -> 0
             LoginAppState.LOGGED_IN -> {
+                Log.i("app state observer", "logged in state detected")
                 // reset fields
                 firebaseClient.resetAllFields()
                 // navigate to main page of the app
-                //Log.i("login observer", findNavController().currentDestination!!.id.toString())
+                //Log.i("login observer", findNavController().currentDestination?.id.toString())
                 //if (findNavController().currentDestination?.id == R.id.LoginFragment) {
+                //if (shouldNavigateToMainFragment) {
+                //    shouldNavigateToMainFragment = false
+                    Log.i("app state", "navigate once")
                     findNavController().navigate(R.id.action_LoginFragment_to_MainFragment)
+                //}
                 //}
             }
             LoginAppState.LOGIN_ERROR -> {
@@ -99,6 +105,11 @@ class LoginFragment : Fragment() {
         _binding = null
     }
 
+    override fun onResume() {
+        super.onResume()
+        shouldNavigateToMainFragment = true
+    }
+
     private fun loginErrorAlert() {
         val errorAlert = AlertDialog.Builder(requireContext())
 
@@ -112,4 +123,6 @@ class LoginFragment : Fragment() {
 
         errorAlert.show()
     }
+
+
 }

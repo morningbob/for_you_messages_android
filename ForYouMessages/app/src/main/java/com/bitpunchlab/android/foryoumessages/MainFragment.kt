@@ -41,13 +41,6 @@ class MainFragment : Fragment() {
 
         firebaseClient.loginAppState.observe(viewLifecycleOwner, loginAppStateObserver)
 
-        return binding.root
-
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
         binding.buttonCreateKeys.setOnClickListener {
             createAsymmetricKeyPair()
             val keyPair = getAsymmetricKeyPair()
@@ -58,6 +51,19 @@ class MainFragment : Fragment() {
         binding.buttonLogout.setOnClickListener {
             firebaseClient.logoutUser()
         }
+
+        firebaseClient.loggedIn.observe(viewLifecycleOwner, Observer { loggedIn ->
+            if (!loggedIn) {
+                //findNavController().popBackStack()
+            }
+        })
+
+        return binding.root
+
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
     }
 
     override fun onDestroyView() {
@@ -74,7 +80,8 @@ class MainFragment : Fragment() {
         return when (item.itemId) {
             R.id.logout -> {
                 firebaseClient.logoutUser()
-                firebaseClient.loginAppState.value = LoginAppState.LOGGED_OUT
+                //firebaseClient.loginAppState.value = LoginAppState.LOGGED_OUT
+                firebaseClient.createAccountAppState.value = CreateAccountAppState.NORMAL
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -132,7 +139,8 @@ class MainFragment : Fragment() {
                 // return to login page, or pop off self
                 //findNavController().navigate(R.id.action_MainFragment_to_LoginFragment)
                 //findNavController().popBackStack()
-                findNavController().popBackStack()
+                //findNavController().popBackStack()
+                Log.i("main, app state", "logged out once")
             }
             else -> {
 

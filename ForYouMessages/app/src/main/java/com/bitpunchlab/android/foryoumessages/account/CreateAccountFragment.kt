@@ -46,7 +46,7 @@ class CreateAccountFragment : Fragment() {
 
         binding.buttonSend.setOnClickListener {
             // register the user in Firebase Auth and Firebase Database
-            firebaseClientViewModel.registerNewUser()
+            firebaseClientViewModel.prepareToRegisterNewUser()
         }
 
         return binding.root
@@ -78,7 +78,15 @@ class CreateAccountFragment : Fragment() {
             CreateAccountAppState.AUTH_REGISTRATION_SUCCESS -> {
                 firebaseClientViewModel.createAndSaveNewUser()
             }
-            CreateAccountAppState.REGISTER_ERROR -> {
+            CreateAccountAppState.SAME_EMAIL_ERROR -> {
+                firebaseClientViewModel.clearSameEmail()
+                sameEmailAlert()
+            }
+            CreateAccountAppState.SAME_PHONE_ERROR -> {
+                firebaseClientViewModel.clearSamePhone()
+                samePhoneAlert()
+            }
+            CreateAccountAppState.REGISTRATION_ERROR -> {
                 registerErrorAlert()
                 firebaseClientViewModel.createAccountAppState.value = CreateAccountAppState.RESET
             }
@@ -117,6 +125,34 @@ class CreateAccountFragment : Fragment() {
 
         errorAlert.setTitle(getString(R.string.registration_failure_alert_title))
         errorAlert.setMessage(getString(R.string.registration_failure_alert_desc))
+
+        errorAlert.setPositiveButton(getString(R.string.ok),
+            DialogInterface.OnClickListener { dialog, button ->
+                // do nothing
+            })
+
+        errorAlert.show()
+    }
+
+    private fun sameEmailAlert() {
+        val errorAlert = AlertDialog.Builder(requireContext())
+
+        errorAlert.setTitle("Registration Error")
+        errorAlert.setMessage("There is error in registration.  The email already exists.  Please try to login or use another email.")
+
+        errorAlert.setPositiveButton(getString(R.string.ok),
+            DialogInterface.OnClickListener { dialog, button ->
+                // do nothing
+            })
+
+        errorAlert.show()
+    }
+
+    private fun samePhoneAlert() {
+        val errorAlert = AlertDialog.Builder(requireContext())
+
+        errorAlert.setTitle("Registration Error")
+        errorAlert.setMessage("There is error in registration.  The phone number is already registered.  Please recover the account and login.")
 
         errorAlert.setPositiveButton(getString(R.string.ok),
             DialogInterface.OnClickListener { dialog, button ->
