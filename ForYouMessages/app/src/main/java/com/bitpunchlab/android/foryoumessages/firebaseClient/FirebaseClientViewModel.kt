@@ -448,7 +448,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             .addOnCompleteListener(activity) { task ->
                 if (task.isSuccessful) {
                     Log.i("signIn user", "success")
-                    //loginAppState.postValue(LoginAppState.LOGGED_IN)
                 } else {
                     Log.i("signIn user", "error")
                     loginAppState.postValue(LoginAppState.LOGIN_ERROR)

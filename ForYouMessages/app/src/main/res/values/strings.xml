@@ -16,8 +16,6 @@
     <string name="button_write_message">Write Message</string>
     <string name="login">Login</string>
     <string name="send">Send</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="create_account">Create Account</string>
     <string name="confirm_password">Confirm Password:</string>
     <string name="password">Password:</string>
@@ -25,7 +23,7 @@
     <string name="name">Name:</string>
     <string name="email">Email:</string>
     <string name="login_failure_alert_title">Login Failure</string>
-    <string name="login_failure_alert_desc">There is error in the server.  Please try again later.</string>
+    <string name="login_failure_alert_desc">Either the user password is incorrect or there is error in the server.  Please try again later.</string>
     <string name="registration_success_alert_title">Registration Success</string>
     <string name="registration_success_alert_desc">You are registered!</string>
     <string name="registration_failure_alert_title">Registration Failure</string>

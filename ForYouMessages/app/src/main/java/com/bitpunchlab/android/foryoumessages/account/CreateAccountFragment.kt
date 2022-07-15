@@ -8,6 +8,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
@@ -23,6 +24,7 @@ class CreateAccountFragment : Fragment() {
     private var _binding : FragmentCreateAccountBinding? = null
     private val binding get() = _binding!!
     private lateinit var firebaseClientViewModel: FirebaseClientViewModel
+    private val navigateToHome = MutableLiveData<Boolean>(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,6 +51,11 @@ class CreateAccountFragment : Fragment() {
             firebaseClientViewModel.prepareToRegisterNewUser()
         }
 
+        navigateToHome.observe(viewLifecycleOwner, Observer { navigate ->
+            if (navigate) {
+                findNavController().navigate(R.id.action_createAccountFragment_to_MainFragment)
+            }
+        })
         return binding.root
     }
 
@@ -94,14 +101,15 @@ class CreateAccountFragment : Fragment() {
                 // alert user of registration success
                 registerSuccessAlert()
                 firebaseClientViewModel.createAccountAppState.value = CreateAccountAppState.RESET
+                navigateToHome.value = true
             }
             CreateAccountAppState.RESET -> {
                 firebaseClientViewModel.resetAllFields()
-                firebaseClientViewModel.createAccountAppState.value = CreateAccountAppState.LOGGED_IN
+                //firebaseClientViewModel.createAccountAppState.value = CreateAccountAppState.LOGGED_IN
             }
             CreateAccountAppState.LOGGED_IN -> {
                 // navigate to main fragment
-                findNavController().navigate(R.id.action_createAccountFragment_to_MainFragment)
+                //findNavController().navigate(R.id.action_createAccountFragment_to_MainFragment)
             }
         }
     }

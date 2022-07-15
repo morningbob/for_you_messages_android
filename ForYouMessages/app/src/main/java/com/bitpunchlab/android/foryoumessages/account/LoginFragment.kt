@@ -83,15 +83,19 @@ class LoginFragment : Fragment() {
                 //if (shouldNavigateToMainFragment) {
                 //    shouldNavigateToMainFragment = false
                     Log.i("app state", "navigate once")
-                    findNavController().navigate(R.id.action_LoginFragment_to_MainFragment)
+                findNavController().navigate(R.id.action_LoginFragment_to_MainFragment)
                 //}
                 //}
             }
             LoginAppState.LOGIN_ERROR -> {
                 loginErrorAlert()
+                firebaseClient.loginAppState.value = LoginAppState.RESET
             }
             LoginAppState.LOGGED_OUT -> 0
-            LoginAppState.RESET -> 0
+            LoginAppState.RESET -> {
+                //firebaseClient.resetAllFields()
+                firebaseClient.clearSameEmail()
+            }
             else -> 0
         }
     }

@@ -52,12 +52,6 @@ class MainFragment : Fragment() {
             firebaseClient.logoutUser()
         }
 
-        firebaseClient.loggedIn.observe(viewLifecycleOwner, Observer { loggedIn ->
-            if (!loggedIn) {
-                //findNavController().popBackStack()
-            }
-        })
-
         return binding.root
 
     }
@@ -137,9 +131,7 @@ class MainFragment : Fragment() {
         when (appState) {
             LoginAppState.LOGGED_OUT -> {
                 // return to login page, or pop off self
-                //findNavController().navigate(R.id.action_MainFragment_to_LoginFragment)
-                //findNavController().popBackStack()
-                //findNavController().popBackStack()
+                findNavController().popBackStack()
                 Log.i("main, app state", "logged out once")
             }
             else -> {
