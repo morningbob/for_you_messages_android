@@ -274,6 +274,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 readyLoginLiveData.value = false
             }
         }
+        /*
         // these mediator live data are for registration, but I put them here
         // since I don't want to observe again every time user click send button
         readyRegisterAuth.addSource(foundPhone) { found ->
@@ -316,14 +317,21 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 }
             }
         })
-
+*/
         requestContactAppState.observe(activity as LifecycleOwner, Observer { appState ->
             when (appState) {
                 RequestContactAppState.CONFIRMED_REQUEST -> {
-                    triggerRequestContactCloudFunction(
-                        auth.currentUser!!.email!!,
-                        inviteeContact!!.contactEmail
-                    )
+                    coroutineScope.launch {
+                        if (triggerCloudFunction(
+                            inviterEmail = auth.currentUser!!.email!!,
+                            inviteeEmail = inviteeContact!!.contactEmail,
+                            requestName = "requestContact"
+                        )) {
+                            requestContactAppState.postValue(RequestContactAppState.REQUEST_SENT)
+                        } else {
+                            requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
+                        }
+                    }
                 }
                 else -> 0
             }
@@ -363,8 +371,8 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         // not found, value is 1, if error, value is 3
         // when both values are 1, proceed to register
 
-        foundPhone.value = 0
-        foundEmail.value = 0
+        //foundPhone.value = 0
+        //foundEmail.value = 0
 
         Log.i("prepare", "start searching")
 
@@ -390,7 +398,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     private fun registerUser() {
         // remove shouldRegisterObsever
-        //(activity as LifecycleOwner)
         // we already tested user email and password are valid
         auth.createUserWithEmailAndPassword(userEmail.value!!, userPassword.value!!)
             .addOnCompleteListener(activity) { task ->
@@ -441,20 +448,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 Log.i("error adding user", e.message.toString())
                 createAccountAppState.postValue(CreateAccountAppState.REGISTRATION_ERROR)
             }
-        /*
-        database.child("users").child(newUser.userID).setValue(newUser)
-            .addOnCompleteListener(activity) { task ->
-                if (task.isSuccessful) {
-                    Log.i("save user in database", "success")
-                    // now we can save the user's phone number in phone list
-                    savePhoneInDatabase(newUser.userPhone)
-                } else {
-                    Log.i("save user in database", "failure")
-                    createAccountAppState.postValue(CreateAccountAppState.REGISTER_ERROR)
-                }
-            }
-
-         */
     }
 
     private fun saveContactInDatabase(user: User) {
@@ -475,22 +468,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 Log.i("error adding contact", e.message.toString())
                 createAccountAppState.postValue(CreateAccountAppState.REGISTRATION_ERROR)
             }
-        /*
-        val keyID = database.push().key
-        keyID?.let { key ->
-            database.child("phones").child(key).setValue(phone)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        Log.i("save phone", "success")
-                        createAccountAppState.postValue(CreateAccountAppState.REGISTRATION_SUCCESS)
-                    } else {
-                        Log.i("save phone", "failed")
-                        createAccountAppState.postValue(CreateAccountAppState.REGISTER_ERROR)
-                    }
-                }
-        }
-
-         */
     }
 
     fun authenticateUser() {
@@ -523,7 +500,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     // issue request, need to be accepted by the party
     // here we put the user's contact id into the target's invites list
     // when the target is online, the app will check his invites list and notify him
-
 
     private var phoneValueEventListener = object : ValueEventListener {
         override fun onDataChange(snapshot: DataSnapshot) {
@@ -573,19 +549,9 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                     cancellableContinuation.resume(3) {}
                 }
         }
-        //return foundPhone.value!!
-        /*
-        database.child("phones")
-            .orderByValue()
-            .equalTo(phone)
-            .addListenerForSingleValueEvent(phoneValueEventListener)
-
-         */
-
 
     private suspend fun searchEmail(email: String) : Int =
         suspendCancellableCoroutine<Int> { cancellableContinuation ->
-        //withContext(Dispatchers.IO) {
             foundEmail.postValue(0)
             val contactsRef = database.collection("contacts")
             contactsRef
@@ -611,7 +577,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                     //foundEmail.postValue(3)
                     cancellableContinuation.resume(3) {}
                 }
-            //return@withContext foundEmail.value!!
         }
 
 
@@ -657,16 +622,10 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     // here we need to update the original user's accepted request
     // and notify the original user
     // we also add the user's contact into the original user's contact list
-    fun acceptInvite() {
 
-    }
 
     // here we need to update the original user's requestedContacts list, delete it
     // and notify the original user
-    fun rejectInvite() {
-
-    }
-
     private suspend fun retrieveContact(phone: String) : Contact =
         suspendCancellableCoroutine<Contact> {  cancellableContinuation ->
             Log.i("retrieve contact", "start running coroutine")
@@ -695,28 +654,79 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             //Log.i("retrieve contact", "about to stop running coroutine")
     }
 
-    private fun triggerRequestContactCloudFunction(invitorEmail: String, inviteeEmail: String) {
-        Log.i("trigger request", "triggered")
-        val docData = hashMapOf<String, String>(
-            "inviterEmail" to invitorEmail,
-            "inviteeEmail" to inviteeEmail,
-        )
-        val requestRef = database.collection("requestContact")
-        requestRef
-            .document(UUID.randomUUID().toString())
-            .set(docData)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    Log.i("request contact", "writing doc succeeded")
-                    requestContactAppState.postValue(RequestContactAppState.REQUEST_SENT)
-                    // alert user
-                } else {
-                    Log.i("request contact", "writing doc failed")
-                    requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
+    private suspend fun triggerCloudFunction(inviterEmail: String = "", inviteeEmail: String = "",
+        requestName: String) : Boolean =
+        suspendCancellableCoroutine<Boolean> { cancellableContinuation ->
+            Log.i("trigger request", "triggered")
+            val docData = hashMapOf<String, String>(
+                "inviterEmail" to inviterEmail,
+                "inviteeEmail" to inviteeEmail,
+
+            )
+            val requestRef = database.collection(requestName)
+            requestRef
+                .document(UUID.randomUUID().toString())
+                .set(docData)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        Log.i("request contact", "writing doc succeeded")
+                        //requestContactAppState.postValue(RequestContactAppState.REQUEST_SENT)
+                        cancellableContinuation.resume(true) {}
+                    } else {
+                        Log.i("request contact", "writing doc failed")
+                        //requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
+                        cancellableContinuation.resume(false) {}
+                    }
                 }
+        }
+
+
+    private fun acceptInvite(inviterEmail: String) {
+        //suspendCancellableCoroutine<Contact> { cancellableContinuation ->
+        coroutineScope.launch {
+            if (triggerCloudFunction(
+                    inviterEmail = inviterEmail,
+                    inviteeEmail = auth.currentUser!!.email!!, requestName = "acceptContact"
+                )
+            ) {
+                requestContactAppState.postValue(RequestContactAppState.ACCEPTED_CONTACT)
+            } else {
+                requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
             }
+        }
+        //}
     }
 
+    private fun rejectInvite(inviterEmail: String) {
+        coroutineScope.launch {
+            if (triggerCloudFunction(
+                    inviterEmail = inviterEmail,
+                    inviteeEmail = auth.currentUser!!.email!!, requestName = "rejectContact"
+                )
+            ) {
+                requestContactAppState.postValue(RequestContactAppState.REJECTED_CONTACT)
+            } else {
+                requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
+            }
+        }
+    }
+
+    // in delete case, inviter is the original user
+    // invitee is the target user
+    private fun deleteContact(targetEmail: String) {
+        coroutineScope.launch {
+            if (triggerCloudFunction(
+                    inviterEmail = auth.currentUser!!.email!!,
+                    inviteeEmail = targetEmail,
+                    requestName = "rejectContact"
+                )
+            ) {
+                requestContactAppState.postValue(RequestContactAppState.REJECTED_CONTACT)
+            } else {
+                requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
+            }
+        }
+    }
 }
 
 class FirebaseClientViewModelFactory(private val activity: Activity)
