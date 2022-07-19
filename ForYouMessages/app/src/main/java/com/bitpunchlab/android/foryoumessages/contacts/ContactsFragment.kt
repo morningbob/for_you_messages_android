@@ -11,6 +11,7 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.bitpunchlab.android.foryoumessages.LoginAppState
 import com.bitpunchlab.android.foryoumessages.R
+import com.bitpunchlab.android.foryoumessages.RequestContactAppState
 import com.bitpunchlab.android.foryoumessages.databinding.FragmentContactsBinding
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModelFactory
@@ -51,6 +52,8 @@ class ContactsFragment : Fragment() {
             contactsAdapter.submitList(contacts)
             contactsAdapter.notifyDataSetChanged()
         })
+
+        firebaseClient.requestContactAppState.observe(viewLifecycleOwner, requestContactAppStateObserver)
 
         return binding.root
     }
@@ -120,5 +123,33 @@ class ContactsFragment : Fragment() {
             })
 
         errorAlert.show()
+    }
+
+    private val requestContactAppStateObserver = Observer<RequestContactAppState> { appState ->
+        when (appState) {
+            RequestContactAppState.ASK_CONFIRMATION -> {
+                confirmRequestAlert(firebaseClient.inviteeContact!!.contactName)
+            }
+            else -> 0
+        }
+    }
+
+    private fun confirmRequestAlert(contactName: String) {
+        val confirmAlert = AlertDialog.Builder(requireContext())
+        confirmAlert.setCancelable(false)
+        confirmAlert.setTitle("Confirm Request")
+        confirmAlert.setMessage("Are you sure to request add ${contactName} in Contacts?")
+
+        confirmAlert.setPositiveButton("Confirm",
+            DialogInterface.OnClickListener { dialog, button ->
+                firebaseClient.requestContactAppState.value = RequestContactAppState.CONFIRMED_REQUEST
+            })
+
+        confirmAlert.setNegativeButton(getString(R.string.cancel),
+            DialogInterface.OnClickListener { dialog, button ->
+                // do nothing
+            })
+
+        confirmAlert.show()
     }
 }

@@ -78,7 +78,9 @@ class MainFragment : Fragment() {
                 firebaseClient.createAccountAppState.value = CreateAccountAppState.NORMAL
                 true
             }
-            else -> super.onOptionsItemSelected(item)
+            else -> NavigationUI.onNavDestinationSelected(item,
+                requireView().findNavController())
+                    || super.onOptionsItemSelected(item)
         }
     }
 /*
@@ -87,8 +89,6 @@ class MainFragment : Fragment() {
             requireView().findNavController())
                 || super.onOptionsItemSelected(item)
     }
-
-
  */
     private fun generateKeys() {
 

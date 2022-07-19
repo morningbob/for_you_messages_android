@@ -20,3 +20,12 @@ enum class LoginAppState {
     RESET
 }
 
+enum class RequestContactAppState {
+    REQUEST,
+    CONTACT_NOT_FOUND,
+    ASK_CONFIRMATION,
+    CONFIRMED_REQUEST,
+    SERVER_NOT_AVAILABLE,
+    REQUEST_SENT
+}
+

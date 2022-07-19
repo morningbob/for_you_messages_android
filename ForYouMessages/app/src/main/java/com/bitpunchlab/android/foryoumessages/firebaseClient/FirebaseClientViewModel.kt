@@ -5,8 +5,11 @@ import android.telephony.PhoneNumberUtils
 import android.util.Log
 import android.util.Patterns
 import androidx.lifecycle.*
+import androidx.lifecycle.Observer
 import com.bitpunchlab.android.foryoumessages.CreateAccountAppState
 import com.bitpunchlab.android.foryoumessages.LoginAppState
+import com.bitpunchlab.android.foryoumessages.RequestContactAppState
+import com.bitpunchlab.android.foryoumessages.models.Contact
 import com.bitpunchlab.android.foryoumessages.models.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -15,8 +18,11 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.*
+import java.util.*
 
 import java.util.regex.Pattern
+import kotlin.collections.ArrayList
 
 class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
@@ -67,6 +73,9 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     var _loginAppState = MutableLiveData<LoginAppState>(LoginAppState.NORMAL)
     val loginAppState get() = _loginAppState
 
+    var _requestContactAppState = MutableLiveData<RequestContactAppState>()
+    val requestContactAppState get() = _requestContactAppState
+
     private val database = Firebase.firestore
 
     var foundPhone = MutableLiveData<Int>(0)
@@ -74,6 +83,16 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     var _loggedIn = MutableLiveData<Boolean>(false)
     val loggedIn get() = _loggedIn
+
+    lateinit var coroutineScope: CoroutineScope
+
+    var inviteeContact : Contact? = null
+
+    var _searchPhoneResult = MutableLiveData<Int>(0)
+    val searchPhoneResult get() = _searchPhoneResult
+
+    var _searchEmailResult = MutableLiveData<Int>(0)
+    val searchEmailResult get() = _searchEmailResult
 
     // whenever user is filling in one field, that field checks for its validity.
     // only if it is valid will the ready to create live data check if all fields are valid
@@ -179,6 +198,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     init {
         auth.addAuthStateListener(authStateListener)
         _allValid.value = arrayListOf(0,0,0,0,0)
+        coroutineScope = CoroutineScope(Dispatchers.IO)
 
         // we'll set allValid a 1 entry if the field is valid
         // we also check if other fields are also valid by checking if the allValid arraylist sum to 5
@@ -292,8 +312,20 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             value?.let {
                 if (value) {
                     Log.i("ready proceed?", "proceed")
-                    registerUser()
+                    //registerUser()
                 }
+            }
+        })
+
+        requestContactAppState.observe(activity as LifecycleOwner, Observer { appState ->
+            when (appState) {
+                RequestContactAppState.CONFIRMED_REQUEST -> {
+                    triggerRequestContactCloudFunction(
+                        auth.currentUser!!.email!!,
+                        inviteeContact!!.contactEmail
+                    )
+                }
+                else -> 0
             }
         })
     }
@@ -335,12 +367,30 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         foundEmail.value = 0
 
         Log.i("prepare", "start searching")
-        searchPhone(userPhone.value!!)
-        searchEmail(userEmail.value!!)
+
+        val shouldRegister = MediatorLiveData<Boolean>()
+        shouldRegister.addSource(searchPhoneResult) { result ->
+            shouldRegister.value = result == 1 && searchEmailResult.value!! == 1
+        }
+        shouldRegister.addSource(searchEmailResult) { result ->
+            shouldRegister.value = result == 1 && searchPhoneResult.value!! == 1
+        }
+        shouldRegister.observe(activity as LifecycleOwner, Observer { readyRegister ->
+            if (readyRegister) {
+                registerUser()
+            }
+        })
+
+        coroutineScope.launch {
+            searchPhoneResult.postValue(searchPhone(userPhone.value!!))
+            searchEmailResult.postValue(searchEmail(userEmail.value!!))
+        }
 
     }
 
     private fun registerUser() {
+        // remove shouldRegisterObsever
+        //(activity as LifecycleOwner)
         // we already tested user email and password are valid
         auth.createUserWithEmailAndPassword(userEmail.value!!, userPassword.value!!)
             .addOnCompleteListener(activity) { task ->
@@ -382,7 +432,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         database.collection("users")
             .document(newUser.userID)
             .set(newUser, SetOptions.merge())
-            .addOnCompleteListener { docRef ->
+            .addOnSuccessListener { docRef ->
                 Log.i("save user in database", "success")
                 // now we can save the user's phone number in phone list
                 saveContactInDatabase(newUser)
@@ -409,15 +459,15 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     private fun saveContactInDatabase(user: User) {
         val contactData = hashMapOf<String, String>(
-            "name" to user.userName,
-            "phone" to user.userPhone,
-            "email" to user.userEmail
+            "contactName" to user.userName,
+            "contactPhone" to user.userPhone,
+            "contactEmail" to user.userEmail
         )
 
         database.collection("contacts")
             .document(user.userEmail)
             .set(contactData)
-            .addOnCompleteListener { docRef ->
+            .addOnSuccessListener { docRef ->
                 Log.i("save contact in database", "success")
                 createAccountAppState.postValue(CreateAccountAppState.REGISTRATION_SUCCESS)
             }
@@ -473,20 +523,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     // issue request, need to be accepted by the party
     // here we put the user's contact id into the target's invites list
     // when the target is online, the app will check his invites list and notify him
-    fun requestContact(phone: String) {
-        // we reset the foundValue here to make sure it reflects the result
-        foundPhone.value = 0
-        // here we start to observe foundPhone
-        foundPhone.observe(activity as LifecycleOwner, Observer { found ->
-            //if (found) {
-                // proceed with making the request
 
-            //}
-        })
-        //database.child("phones")
-        searchPhone(phone)
-
-    }
 
     private var phoneValueEventListener = object : ValueEventListener {
         override fun onDataChange(snapshot: DataSnapshot) {
@@ -506,31 +543,37 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     }
 
-    private fun searchPhone(phone: String) {
-        val contactsRef = database.collection("contacts")
-
-        contactsRef
-            .whereEqualTo("phone", phone)
-            .get()
-            .addOnSuccessListener { documents ->
-                if (documents.isEmpty) {
-                    Log.i("search phone", "success but no document found")
-                    foundPhone.postValue(1)
+    //@OptIn(InternalCoroutinesApi::class)
+    private suspend fun searchPhone(phone: String) : Int =
+        suspendCancellableCoroutine<Int> { cancellableContinuation ->
+            foundPhone.postValue(0)
+            val contactsRef = database.collection("contacts")
+            contactsRef
+                .whereEqualTo("contactPhone", phone)
+                .get()
+                .addOnSuccessListener { documents ->
+                    if (documents.isEmpty) {
+                        Log.i("search phone", "success but no document found")
+                        //foundPhone.postValue(1)
+                        cancellableContinuation.resume(1) {}
+                    }
+                    for (document in documents) {
+                        // so when there is a document, that means there is a phone number matched
+                        // the loop should run only once
+                        //foundPhone.postValue(2)
+                        Log.i("search phone", "exists")
+                        createAccountAppState.postValue(CreateAccountAppState.SAME_PHONE_ERROR)
+                        cancellableContinuation.resume(2) {}
+                    }
 
                 }
-                for (document in documents) {
-                    // so when there is a document, that means there is a phone number matched
-                    // the loop should run only once
-                    foundPhone.postValue(2)
-                    Log.i("search phone", "exists")
-                    createAccountAppState.postValue(CreateAccountAppState.SAME_PHONE_ERROR)
+                .addOnFailureListener { e ->
+                    Log.i("error searching phone", e.message.toString())
+                    //foundPhone.postValue(3)
+                    cancellableContinuation.resume(3) {}
                 }
-            }
-            .addOnFailureListener { e ->
-                Log.i("error searching phone", e.message.toString())
-                foundPhone.postValue(3)
-            }
-
+        }
+        //return foundPhone.value!!
         /*
         database.child("phones")
             .orderByValue()
@@ -538,32 +581,40 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             .addListenerForSingleValueEvent(phoneValueEventListener)
 
          */
-    }
 
-    private fun searchEmail(email: String) {
-        val contactsRef = database.collection("contacts")
-        contactsRef
-            .whereEqualTo("email", email)
-            .get()
-            .addOnSuccessListener { documents ->
-                if (documents.isEmpty) {
-                    Log.i("search email", "success but no document found")
-                    foundEmail.postValue(1)
 
+    private suspend fun searchEmail(email: String) : Int =
+        suspendCancellableCoroutine<Int> { cancellableContinuation ->
+        //withContext(Dispatchers.IO) {
+            foundEmail.postValue(0)
+            val contactsRef = database.collection("contacts")
+            contactsRef
+                .whereEqualTo("contactEmail", email)
+                .get()
+                .addOnSuccessListener { documents ->
+                    if (documents.isEmpty) {
+                        Log.i("search email", "success but no document found")
+                        //foundEmail.postValue(1)
+                        cancellableContinuation.resume(1) {}
+                    }
+                    for (document in documents) {
+                        // so when there is a document, that means there is a phone number matched
+                        // the loop should run only once
+                        //foundEmail.postValue(2)
+                        Log.i("search email", "exists")
+                        createAccountAppState.postValue(CreateAccountAppState.SAME_EMAIL_ERROR)
+                        cancellableContinuation.resume(2) {}
+                    }
                 }
-                for (document in documents) {
-                    // so when there is a document, that means there is a phone number matched
-                    // the loop should run only once
-                    foundEmail.postValue(2)
-                    Log.i("search email", "exists")
-                    createAccountAppState.postValue(CreateAccountAppState.SAME_EMAIL_ERROR)
+                .addOnFailureListener { e ->
+                    Log.i("error searching email", e.message.toString())
+                    //foundEmail.postValue(3)
+                    cancellableContinuation.resume(3) {}
                 }
-            }
-            .addOnFailureListener { e ->
-                Log.i("error searching email", e.message.toString())
-                foundEmail.postValue(3)
-            }
-    }
+            //return@withContext foundEmail.value!!
+        }
+
+
 
     fun clearSameEmail() {
         userEmail.value = ""
@@ -571,6 +622,28 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     fun clearSamePhone() {
         userPhone.value = ""
+    }
+
+    fun requestContact(phone: String) {
+        coroutineScope.launch {
+            val result = searchPhone(phone)
+            if (result == 2) {
+                Log.i("inside coroutine, test search phone exists or not", "exist")
+                inviteeContact = retrieveContact(phone)
+                Log.i("after retrieved contact", "contact name: ${inviteeContact!!.contactName}")
+                if (inviteeContact != null && !inviteeContact!!.contactName.isNullOrEmpty()) {
+                    Log.i("invitee contact", inviteeContact.toString())
+                    Log.i("invitee contact", "name: ${inviteeContact!!.contactName}")
+                    Log.i("test search phone exists", "got back contact")
+                    // can show an alert to user to confirm the request, with the name of
+                    // the contact
+                    requestContactAppState.postValue(RequestContactAppState.ASK_CONFIRMATION)
+                } else  {
+                    //requestContactAppState.postValue(RequestContactAppState.CONTACT_NOT_FOUND)
+                }
+            }
+        }
+
     }
 
     // there should be a list of accepted request
@@ -592,6 +665,56 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     // and notify the original user
     fun rejectInvite() {
 
+    }
+
+    private suspend fun retrieveContact(phone: String) : Contact =
+        suspendCancellableCoroutine<Contact> {  cancellableContinuation ->
+            Log.i("retrieve contact", "start running coroutine")
+            val contactsRef = database.collection("contacts")
+
+            contactsRef
+                .whereEqualTo("contactPhone", phone)
+                .get()
+                .addOnSuccessListener { documents ->
+                    if (documents.isEmpty) {
+                        Log.i("retrieve contact", "can't find the contact")
+                        cancellableContinuation.resume(Contact()) {}
+                        requestContactAppState.postValue(RequestContactAppState.CONTACT_NOT_FOUND)
+                    } else {
+                        Log.i("retrieve contact", "found the contact")
+                        documents.map { doc ->
+                            cancellableContinuation.resume(doc.toObject(Contact::class.java)) {}
+                        }
+                    }
+                }
+                .addOnFailureListener {
+                    Log.i("retrieve contact", "error")
+                    cancellableContinuation.resume(Contact()) {}
+                    requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
+                }
+            //Log.i("retrieve contact", "about to stop running coroutine")
+    }
+
+    private fun triggerRequestContactCloudFunction(invitorEmail: String, inviteeEmail: String) {
+        Log.i("trigger request", "triggered")
+        val docData = hashMapOf<String, String>(
+            "inviterEmail" to invitorEmail,
+            "inviteeEmail" to inviteeEmail,
+        )
+        val requestRef = database.collection("requestContact")
+        requestRef
+            .document(UUID.randomUUID().toString())
+            .set(docData)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.i("request contact", "writing doc succeeded")
+                    requestContactAppState.postValue(RequestContactAppState.REQUEST_SENT)
+                    // alert user
+                } else {
+                    Log.i("request contact", "writing doc failed")
+                    requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
+                }
+            }
     }
 
 }

@@ -19,12 +19,12 @@
                 android:id="@+id/art_contact"
                 android:layout_width="70dp"
                 android:layout_height="70dp"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="40dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/contact"
-                tools:srcCompat="@drawable/contact" />
+                app:srcCompat="@drawable/directory"
+                tools:srcCompat="@drawable/directory" />
 
             <TextView
                 android:id="@+id/textview_title"
