@@ -9,6 +9,7 @@ import android.widget.EditText
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import com.bitpunchlab.android.foryoumessages.CreateAccountAppState
 import com.bitpunchlab.android.foryoumessages.LoginAppState
 import com.bitpunchlab.android.foryoumessages.R
 import com.bitpunchlab.android.foryoumessages.RequestContactAppState
@@ -38,11 +39,13 @@ class ContactsFragment : Fragment() {
         _binding = FragmentContactsBinding.inflate(inflater, container, false)
         contactsViewModel = ViewModelProvider(requireActivity())
             .get(ContactsViewModel::class.java)
+        // we retrieve the user's contacts from the database
+        firebaseClient.retrieveUserContacts()
         firebaseClient = ViewModelProvider(requireActivity(), FirebaseClientViewModelFactory(requireActivity()))
             .get(FirebaseClientViewModel::class.java)
 
-        contactsAdapter = ContactsAdapter(ContactOnClickListener { user ->
-            contactsViewModel.onContactClicked(user)
+        contactsAdapter = ContactsAdapter(ContactOnClickListener { contact ->
+            contactsViewModel.onContactClicked(contact)
         })
 
         binding.lifecycleOwner = viewLifecycleOwner
@@ -54,6 +57,12 @@ class ContactsFragment : Fragment() {
         })
 
         firebaseClient.requestContactAppState.observe(viewLifecycleOwner, requestContactAppStateObserver)
+
+        // we get the latest contact list from firestore and save it in contact view model
+        // the adapter only pay attention to contact view model
+        firebaseClient.userContacts.observe(viewLifecycleOwner, Observer { contacts ->
+            contactsViewModel.contacts.value = contacts
+        })
 
         return binding.root
     }
@@ -71,8 +80,14 @@ class ContactsFragment : Fragment() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.requestContact -> {
-                //firebaseClient.requestContact()
                 requestContactAlert()
+                true
+            }
+            R.id.logout -> {
+                firebaseClient.logoutUser()
+                // this is the case when user created the account and use it immediately
+                // we need to get back to normal
+                firebaseClient.createAccountAppState.value = CreateAccountAppState.NORMAL
                 true
             }
             else -> super.onOptionsItemSelected(item)

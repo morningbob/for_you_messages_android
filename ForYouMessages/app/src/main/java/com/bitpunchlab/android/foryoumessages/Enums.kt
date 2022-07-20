@@ -21,7 +21,6 @@ enum class LoginAppState {
 }
 
 enum class RequestContactAppState {
-    REQUEST,
     CONTACT_NOT_FOUND,
     ASK_CONFIRMATION,
     CONFIRMED_REQUEST,
@@ -30,4 +29,6 @@ enum class RequestContactAppState {
     ACCEPTED_CONTACT,
     REJECTED_CONTACT,
 }
+
+
 

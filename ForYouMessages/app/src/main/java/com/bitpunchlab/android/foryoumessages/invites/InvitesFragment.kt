@@ -5,14 +5,21 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import com.bitpunchlab.android.foryoumessages.R
+import com.bitpunchlab.android.foryoumessages.contacts.ContactsViewModel
 import com.bitpunchlab.android.foryoumessages.databinding.FragmentInvitesBinding
+import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
 
 
 class InvitesFragment : Fragment() {
 
     private var _binding : FragmentInvitesBinding? = null
     private val binding get() = _binding!!
+    private lateinit var invitesAdapter: InvitesAdapter
+    private lateinit var contactsViewModel: ContactsViewModel
+    private lateinit var firebaseClient: FirebaseClientViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,9 +31,40 @@ class InvitesFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         _binding = FragmentInvitesBinding.inflate(inflater, container, false)
+        binding.lifecycleOwner = viewLifecycleOwner
+
+        // the invites list from firestore just list the emails
+        // we need to get the contact object for the user
+        // that needs too many queries.  I'm going to change
+        // all lists to use contact objects instead of emails
+
+        contactsViewModel = ViewModelProvider(requireActivity())
+            .get(ContactsViewModel::class.java)
+        invitesAdapter = InvitesAdapter(InviteOnClickListener { contact ->
+            contactsViewModel.onContactClicked(contact)
+
+        })
+        binding.invitesRecycler.adapter = invitesAdapter
+
+        contactsViewModel.invites.observe(viewLifecycleOwner, Observer { inviteList ->
+            inviteList?.let {
+                invitesAdapter.submitList(inviteList)
+                invitesAdapter.notifyDataSetChanged()
+            }
+        })
+
+        // we get the latest contact list from firestore and save it in contact view model
+        // the adapter only pay attention to contact view model
+        firebaseClient.userContacts.observe(viewLifecycleOwner, Observer { contacts ->
+            contactsViewModel._invites.value = contacts
+        })
 
         return binding.root
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
 
 }

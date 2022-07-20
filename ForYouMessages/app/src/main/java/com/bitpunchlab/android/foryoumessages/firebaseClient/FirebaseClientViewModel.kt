@@ -17,6 +17,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.*
 import java.util.*
@@ -93,6 +94,9 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     var _searchEmailResult = MutableLiveData<Int>(0)
     val searchEmailResult get() = _searchEmailResult
+
+    var _userContacts = MutableLiveData<List<Contact>>()
+    val userContacts get() = _userContacts
 
     // whenever user is filling in one field, that field checks for its validity.
     // only if it is valid will the ready to create live data check if all fields are valid
@@ -726,6 +730,51 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
             }
         }
+    }
+
+    fun retrieveUserContacts() {
+        var user : User? = null
+        //var contacts : List<Contact> = emptyList()
+        coroutineScope.launch {
+            user = retrieveUser()
+            //contacts = user.contacts
+            if (user != null && user!!.userName != "") {
+                userContacts.postValue(parseContactsHashmap(user!!.contacts))
+            }
+        }
+    }
+
+    private suspend fun retrieveUser() : User =
+        suspendCancellableCoroutine<User> { cancellableContinuation ->
+            //var currentUser: User? = null
+            database.collection("users")
+                .whereEqualTo("userEmail", auth!!.currentUser!!.email)
+                .get()
+                .addOnSuccessListener { documents ->
+                    if (documents.isEmpty) {
+                        Log.i("current user", "error, can't find the user's object")
+                        cancellableContinuation.resume(User()) {}
+                    } else {
+                        documents.map { doc ->
+                            //currentUser = doc.toObject(User::class.java)
+                            Log.i("current user", "found the user")
+                            cancellableContinuation.resume(doc.toObject(User::class.java)) {}
+                        }
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.i("current user", "there is error")
+                    cancellableContinuation.resume(User()) {}
+                }
+        }
+
+
+    private fun parseContactsHashmap(contactsMap: HashMap<String, Contact>) : List<Contact> {
+        val contacts : MutableList<Contact> = emptyList<Contact>() as MutableList<Contact>
+        for (contact in contactsMap.values) {
+            contacts.add(contact)
+        }
+        return contacts
     }
 }
 

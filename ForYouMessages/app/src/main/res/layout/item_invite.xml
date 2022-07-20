@@ -6,10 +6,10 @@
     <data>
         <variable
             name="contact"
-            type="com.bitpunchlab.android.foryoumessages.models.User" />
+            type="com.bitpunchlab.android.foryoumessages.models.Contact" />
         <variable
             name="clickListener"
-            type="com.bitpunchlab.android.foryoumessages.contacts.ContactOnClickListener" />
+            type="com.bitpunchlab.android.foryoumessages.invites.InviteOnClickListener" />
     </data>
 
     <LinearLayout
@@ -49,7 +49,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="10dp"
                 android:layout_marginRight="10dp"
-                android:text="@={contact.userName}"
+                android:text="@={contact.contactName}"
                 android:textSize="@dimen/title_content_text_size"/>
 
             <TextView
@@ -58,7 +58,7 @@
                 android:layout_marginLeft="10dp"
                 android:layout_marginRight="10dp"
                 android:layout_marginTop="10dp"
-                android:text="@={contact.userPhone}"
+                android:text="@={contact.contactPhone}"
                 android:textSize="@dimen/title_content_text_size"/>
 
             <TextView
@@ -67,7 +67,7 @@
                 android:layout_marginLeft="10dp"
                 android:layout_marginRight="10dp"
                 android:layout_marginTop="10dp"
-                android:text="@={contact.userEmail}"
+                android:text="@={contact.contactEmail}"
                 android:textSize="@dimen/title_content_text_size"/>
 
         </LinearLayout>

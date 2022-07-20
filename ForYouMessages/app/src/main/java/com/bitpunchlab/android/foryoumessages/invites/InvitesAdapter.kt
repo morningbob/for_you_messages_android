@@ -1,45 +1,47 @@
-package com.bitpunchlab.android.foryoumessages.contacts
+package com.bitpunchlab.android.foryoumessages.invites
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.bitpunchlab.android.foryoumessages.databinding.ItemContactBinding
+import com.bitpunchlab.android.foryoumessages.databinding.ItemInviteBinding
 import com.bitpunchlab.android.foryoumessages.models.Contact
 import com.bitpunchlab.android.foryoumessages.models.User
 
-class ContactsAdapter(var clickListener: ContactOnClickListener) : ListAdapter<Contact, ContactViewHolder>(ContactDiffCallback()) {
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactViewHolder {
-        return ContactViewHolder.from(parent)
+
+
+class InvitesAdapter (var clickListener: InviteOnClickListener) : ListAdapter<Contact, InviteViewHolder>(InviteDiffCallback()) {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): InviteViewHolder {
+        return InviteViewHolder.from(parent)
     }
 
-    override fun onBindViewHolder(holder: ContactViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: InviteViewHolder, position: Int) {
         val contact = getItem(position)
         holder.bind(contact, clickListener)
     }
 
 }
 
-class ContactViewHolder(val binding: ItemContactBinding) : RecyclerView.ViewHolder(binding.root) {
+class InviteViewHolder(val binding: ItemInviteBinding) : RecyclerView.ViewHolder(binding.root) {
 
-    fun bind(contact: Contact, onClickListener: ContactOnClickListener) {
+    fun bind(contact: Contact, onClickListener: InviteOnClickListener) {
         binding.contact = contact
         binding.clickListener = onClickListener
         binding.executePendingBindings()
     }
 
     companion object {
-        fun from(parent: ViewGroup): ContactViewHolder {
+        fun from(parent: ViewGroup): InviteViewHolder {
             val layoutInflater = LayoutInflater.from(parent.context)
-            val binding = ItemContactBinding.inflate(layoutInflater, parent, false)
+            val binding = ItemInviteBinding.inflate(layoutInflater, parent, false)
 
-            return ContactViewHolder(binding)
+            return InviteViewHolder(binding)
         }
     }
 }
 
-class ContactDiffCallback : DiffUtil.ItemCallback<Contact>() {
+class InviteDiffCallback : DiffUtil.ItemCallback<Contact>() {
     override fun areItemsTheSame(oldItem: Contact, newItem: Contact): Boolean {
         return oldItem.contactEmail == newItem.contactEmail
     }
@@ -50,7 +52,6 @@ class ContactDiffCallback : DiffUtil.ItemCallback<Contact>() {
 
 }
 
-class ContactOnClickListener(val clickListener: (Contact) -> Unit) {
+class InviteOnClickListener(val clickListener: (Contact) -> Unit) {
     fun onClick(contact: Contact) = clickListener(contact)
 }
-

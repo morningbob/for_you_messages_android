@@ -6,7 +6,7 @@
     <data>
         <variable
             name="contact"
-            type="com.bitpunchlab.android.foryoumessages.models.User" />
+            type="com.bitpunchlab.android.foryoumessages.models.Contact" />
         <variable
             name="clickListener"
             type="com.bitpunchlab.android.foryoumessages.contacts.ContactOnClickListener" />
@@ -35,7 +35,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginRight="20dp"
-            android:text="@={contact.userName}"
+            android:text="@={contact.contactName}"
             android:textSize="@dimen/title_content_text_size"/>
 
     </LinearLayout>
