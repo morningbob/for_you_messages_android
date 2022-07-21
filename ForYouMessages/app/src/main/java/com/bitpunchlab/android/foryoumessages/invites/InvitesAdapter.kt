@@ -11,23 +11,26 @@ import com.bitpunchlab.android.foryoumessages.models.User
 
 
 
-class InvitesAdapter (var clickListener: InviteOnClickListener) : ListAdapter<Contact, InviteViewHolder>(InviteDiffCallback()) {
+class InvitesAdapter (var acceptClickListener: AcceptOnClickListener,
+    var rejectClickListener: RejectOnClickListener) : ListAdapter<Contact, InviteViewHolder>(InviteDiffCallback()) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): InviteViewHolder {
         return InviteViewHolder.from(parent)
     }
 
     override fun onBindViewHolder(holder: InviteViewHolder, position: Int) {
         val contact = getItem(position)
-        holder.bind(contact, clickListener)
+        holder.bind(contact, acceptClickListener, rejectClickListener)
     }
 
 }
 
 class InviteViewHolder(val binding: ItemInviteBinding) : RecyclerView.ViewHolder(binding.root) {
 
-    fun bind(contact: Contact, onClickListener: InviteOnClickListener) {
+    fun bind(contact: Contact, acceptClickListener: AcceptOnClickListener,
+        rejectClickListener: RejectOnClickListener) {
         binding.contact = contact
-        binding.clickListener = onClickListener
+        binding.acceptClickListener = acceptClickListener
+        binding.rejectClickListener = rejectClickListener
         binding.executePendingBindings()
     }
 
@@ -55,3 +58,13 @@ class InviteDiffCallback : DiffUtil.ItemCallback<Contact>() {
 class InviteOnClickListener(val clickListener: (Contact) -> Unit) {
     fun onClick(contact: Contact) = clickListener(contact)
 }
+
+class AcceptOnClickListener(val clickListener: (Contact) -> Unit) {
+    fun onClick(contact: Contact) = clickListener(contact)
+}
+
+class RejectOnClickListener(val clickListener: (Contact) -> Unit) {
+    fun onClick(contact: Contact) = clickListener(contact)
+}
+
+

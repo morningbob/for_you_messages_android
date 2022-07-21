@@ -8,13 +8,13 @@ class User {
     var userPhone : String = ""
     var contacts = HashMap<String, Contact>()
     // we keep the record of the requests user issued
-    val requestedContacts = HashMap<String, String>()
+    val requestedContacts = HashMap<String, Contact>()
     // the list of users who accepted the user's request
-    val acceptedContacts = HashMap<String, String>()
+    val acceptedContacts = HashMap<String, Contact>()
     // the list of invites the user got
-    val invites = HashMap<String, String>()
-    val rejectedContacts = HashMap<String, String>()
-    val deletedContacts = HashMap<String, String>()
+    val invites = HashMap<String, Contact>()
+    val rejectedContacts = HashMap<String,Contact>()
+    val deletedContacts = HashMap<String, Contact>()
 
     constructor()
 

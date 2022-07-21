@@ -9,10 +9,9 @@ import android.widget.EditText
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
-import com.bitpunchlab.android.foryoumessages.CreateAccountAppState
-import com.bitpunchlab.android.foryoumessages.LoginAppState
-import com.bitpunchlab.android.foryoumessages.R
-import com.bitpunchlab.android.foryoumessages.RequestContactAppState
+import androidx.navigation.findNavController
+import androidx.navigation.ui.NavigationUI
+import com.bitpunchlab.android.foryoumessages.*
 import com.bitpunchlab.android.foryoumessages.databinding.FragmentContactsBinding
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModelFactory
@@ -39,10 +38,12 @@ class ContactsFragment : Fragment() {
         _binding = FragmentContactsBinding.inflate(inflater, container, false)
         contactsViewModel = ViewModelProvider(requireActivity())
             .get(ContactsViewModel::class.java)
-        // we retrieve the user's contacts from the database
-        firebaseClient.retrieveUserContacts()
+
         firebaseClient = ViewModelProvider(requireActivity(), FirebaseClientViewModelFactory(requireActivity()))
             .get(FirebaseClientViewModel::class.java)
+
+        // we retrieve the user's contacts from the database
+        firebaseClient.retrieveContacts(ContactsList.USER_CONTACTS)
 
         contactsAdapter = ContactsAdapter(ContactOnClickListener { contact ->
             contactsViewModel.onContactClicked(contact)
@@ -90,7 +91,9 @@ class ContactsFragment : Fragment() {
                 firebaseClient.createAccountAppState.value = CreateAccountAppState.NORMAL
                 true
             }
-            else -> super.onOptionsItemSelected(item)
+            else -> NavigationUI.onNavDestinationSelected(item,
+                requireView().findNavController())
+                    || super.onOptionsItemSelected(item)
         }
     }
 

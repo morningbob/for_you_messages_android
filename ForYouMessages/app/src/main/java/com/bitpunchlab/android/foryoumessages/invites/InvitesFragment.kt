@@ -1,16 +1,20 @@
 package com.bitpunchlab.android.foryoumessages.invites
 
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.get
+import com.bitpunchlab.android.foryoumessages.ContactsList
 import com.bitpunchlab.android.foryoumessages.R
 import com.bitpunchlab.android.foryoumessages.contacts.ContactsViewModel
 import com.bitpunchlab.android.foryoumessages.databinding.FragmentInvitesBinding
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
+import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModelFactory
 
 
 class InvitesFragment : Fragment() {
@@ -32,6 +36,8 @@ class InvitesFragment : Fragment() {
     ): View? {
         _binding = FragmentInvitesBinding.inflate(inflater, container, false)
         binding.lifecycleOwner = viewLifecycleOwner
+        firebaseClient = ViewModelProvider(requireActivity(), FirebaseClientViewModelFactory(requireActivity()))
+            .get(FirebaseClientViewModel::class.java)
 
         // the invites list from firestore just list the emails
         // we need to get the contact object for the user
@@ -40,10 +46,16 @@ class InvitesFragment : Fragment() {
 
         contactsViewModel = ViewModelProvider(requireActivity())
             .get(ContactsViewModel::class.java)
-        invitesAdapter = InvitesAdapter(InviteOnClickListener { contact ->
-            contactsViewModel.onContactClicked(contact)
 
-        })
+        // we retrieve the user's contacts from the database
+        firebaseClient.retrieveContacts(ContactsList.REQUESTED_CONTACT)
+
+        invitesAdapter = InvitesAdapter(AcceptOnClickListener { contact ->
+            contactsViewModel.onContactClicked(contact)
+        },
+        RejectOnClickListener { contact -> {
+            contactsViewModel.onContactClicked(contact)
+        } })
         binding.invitesRecycler.adapter = invitesAdapter
 
         contactsViewModel.invites.observe(viewLifecycleOwner, Observer { inviteList ->
@@ -56,6 +68,7 @@ class InvitesFragment : Fragment() {
         // we get the latest contact list from firestore and save it in contact view model
         // the adapter only pay attention to contact view model
         firebaseClient.userContacts.observe(viewLifecycleOwner, Observer { contacts ->
+            Log.i("invites contacts", "contacts size: ${contacts.size}")
             contactsViewModel._invites.value = contacts
         })
 

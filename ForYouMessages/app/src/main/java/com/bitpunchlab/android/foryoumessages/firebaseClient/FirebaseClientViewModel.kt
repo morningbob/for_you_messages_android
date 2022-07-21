@@ -6,6 +6,7 @@ import android.util.Log
 import android.util.Patterns
 import androidx.lifecycle.*
 import androidx.lifecycle.Observer
+import com.bitpunchlab.android.foryoumessages.ContactsList
 import com.bitpunchlab.android.foryoumessages.CreateAccountAppState
 import com.bitpunchlab.android.foryoumessages.LoginAppState
 import com.bitpunchlab.android.foryoumessages.RequestContactAppState
@@ -24,6 +25,7 @@ import java.util.*
 
 import java.util.regex.Pattern
 import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
@@ -88,6 +90,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     lateinit var coroutineScope: CoroutineScope
 
     var inviteeContact : Contact? = null
+    var inviterContact : Contact? = null
 
     var _searchPhoneResult = MutableLiveData<Int>(0)
     val searchPhoneResult get() = _searchPhoneResult
@@ -327,8 +330,10 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 RequestContactAppState.CONFIRMED_REQUEST -> {
                     coroutineScope.launch {
                         if (triggerCloudFunction(
-                            inviterEmail = auth.currentUser!!.email!!,
-                            inviteeEmail = inviteeContact!!.contactEmail,
+                            //inviterEmail = auth.currentUser!!.email!!,
+                            //inviteeEmail = inviteeContact!!.contactEmail,
+                            inviterContact = inviterContact!!,
+                            inviteeContact = inviteeContact!!,
                             requestName = "requestContact"
                         )) {
                             requestContactAppState.postValue(RequestContactAppState.REQUEST_SENT)
@@ -505,24 +510,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     // here we put the user's contact id into the target's invites list
     // when the target is online, the app will check his invites list and notify him
 
-    private var phoneValueEventListener = object : ValueEventListener {
-        override fun onDataChange(snapshot: DataSnapshot) {
-            if (snapshot.children.count() > 0) {
-                // we expect that map run only once, because there should be only
-                // one result.  The phone number should be unique.
-                snapshot.children.map { phoneSnapshot ->
-                    foundPhone.postValue(2)
-                    Log.i("phone listener", "found the phone")
-                }
-            }
-        }
-
-        override fun onCancelled(error: DatabaseError) {
-
-        }
-
-    }
-
     //@OptIn(InternalCoroutinesApi::class)
     private suspend fun searchPhone(phone: String) : Int =
         suspendCancellableCoroutine<Int> { cancellableContinuation ->
@@ -598,9 +585,11 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             val result = searchPhone(phone)
             if (result == 2) {
                 Log.i("inside coroutine, test search phone exists or not", "exist")
-                inviteeContact = retrieveContact(phone)
+                inviteeContact = retrieveContactByPhone(phone)
+                inviterContact = retrieveContactByEmail(auth!!.currentUser!!.email!!)
                 Log.i("after retrieved contact", "contact name: ${inviteeContact!!.contactName}")
-                if (inviteeContact != null && !inviteeContact!!.contactName.isNullOrEmpty()) {
+                if (inviteeContact != null && !inviteeContact!!.contactName.isNullOrEmpty()
+                    && inviterContact != null && !inviterContact!!.contactName.isNullOrEmpty()) {
                     Log.i("invitee contact", inviteeContact.toString())
                     Log.i("invitee contact", "name: ${inviteeContact!!.contactName}")
                     Log.i("test search phone exists", "got back contact")
@@ -630,7 +619,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     // here we need to update the original user's requestedContacts list, delete it
     // and notify the original user
-    private suspend fun retrieveContact(phone: String) : Contact =
+    private suspend fun retrieveContactByPhone(phone: String) : Contact =
         suspendCancellableCoroutine<Contact> {  cancellableContinuation ->
             Log.i("retrieve contact", "start running coroutine")
             val contactsRef = database.collection("contacts")
@@ -658,13 +647,41 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             //Log.i("retrieve contact", "about to stop running coroutine")
     }
 
-    private suspend fun triggerCloudFunction(inviterEmail: String = "", inviteeEmail: String = "",
+    private suspend fun retrieveContactByEmail(email: String) : Contact =
+        suspendCancellableCoroutine<Contact> {  cancellableContinuation ->
+            Log.i("retrieve contact", "start running coroutine")
+            val contactsRef = database.collection("contacts")
+
+            contactsRef
+                .whereEqualTo("contactEmail", email)
+                .get()
+                .addOnSuccessListener { documents ->
+                    if (documents.isEmpty) {
+                        Log.i("retrieve contact", "can't find the contact")
+                        cancellableContinuation.resume(Contact()) {}
+                        requestContactAppState.postValue(RequestContactAppState.CONTACT_NOT_FOUND)
+                    } else {
+                        Log.i("retrieve contact", "found the contact")
+                        documents.map { doc ->
+                            cancellableContinuation.resume(doc.toObject(Contact::class.java)) {}
+                        }
+                    }
+                }
+                .addOnFailureListener {
+                    Log.i("retrieve contact", "error")
+                    cancellableContinuation.resume(Contact()) {}
+                    requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
+                }
+            //Log.i("retrieve contact", "about to stop running coroutine")
+        }
+
+    private suspend fun triggerCloudFunction(inviterContact: Contact, inviteeContact: Contact,
         requestName: String) : Boolean =
         suspendCancellableCoroutine<Boolean> { cancellableContinuation ->
             Log.i("trigger request", "triggered")
-            val docData = hashMapOf<String, String>(
-                "inviterEmail" to inviterEmail,
-                "inviteeEmail" to inviteeEmail,
+            val docData = hashMapOf<String, Contact>(
+                "inviterContact" to inviterContact,
+                "inviteeContact" to inviteeContact,
 
             )
             val requestRef = database.collection(requestName)
@@ -685,12 +702,12 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         }
 
 
-    private fun acceptInvite(inviterEmail: String) {
+    private fun acceptInvite(inviterContact: Contact, inviteeContact: Contact) {
         //suspendCancellableCoroutine<Contact> { cancellableContinuation ->
         coroutineScope.launch {
             if (triggerCloudFunction(
-                    inviterEmail = inviterEmail,
-                    inviteeEmail = auth.currentUser!!.email!!, requestName = "acceptContact"
+                    inviterContact = inviterContact,
+                    inviteeContact = inviteeContact, requestName = "acceptContact"
                 )
             ) {
                 requestContactAppState.postValue(RequestContactAppState.ACCEPTED_CONTACT)
@@ -701,11 +718,11 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         //}
     }
 
-    private fun rejectInvite(inviterEmail: String) {
+    private fun rejectInvite(inviterContact: Contact, inviteeContact: Contact) {
         coroutineScope.launch {
             if (triggerCloudFunction(
-                    inviterEmail = inviterEmail,
-                    inviteeEmail = auth.currentUser!!.email!!, requestName = "rejectContact"
+                    inviterContact = inviterContact,
+                    inviteeContact = inviteeContact, requestName = "rejectContact"
                 )
             ) {
                 requestContactAppState.postValue(RequestContactAppState.REJECTED_CONTACT)
@@ -717,11 +734,11 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     // in delete case, inviter is the original user
     // invitee is the target user
-    private fun deleteContact(targetEmail: String) {
+    private fun deleteContact(targetContact: Contact, userContact: Contact) {
         coroutineScope.launch {
             if (triggerCloudFunction(
-                    inviterEmail = auth.currentUser!!.email!!,
-                    inviteeEmail = targetEmail,
+                    inviterContact = userContact,
+                    inviteeContact = targetContact,
                     requestName = "rejectContact"
                 )
             ) {
@@ -732,14 +749,22 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         }
     }
 
-    fun retrieveUserContacts() {
+    fun retrieveContacts(contactKind: ContactsList) {
         var user : User? = null
         //var contacts : List<Contact> = emptyList()
+        //var retrievingContacts = HashMap<String, Contact>()
+
         coroutineScope.launch {
             user = retrieveUser()
-            //contacts = user.contacts
+            val retrievingContacts = when (contactKind) {
+                ContactsList.REQUESTED_CONTACT -> user!!.requestedContacts
+                ContactsList.ACCEPTED_CONTACT -> user!!.acceptedContacts
+                ContactsList.REJECTED_CONTACT -> user!!.rejectedContacts
+                ContactsList.INVITES -> user!!.invites
+                ContactsList.USER_CONTACTS -> user!!.contacts
+            }
             if (user != null && user!!.userName != "") {
-                userContacts.postValue(parseContactsHashmap(user!!.contacts))
+                userContacts.postValue(parseContactsHashmap(retrievingContacts))
             }
         }
     }
@@ -770,7 +795,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
 
     private fun parseContactsHashmap(contactsMap: HashMap<String, Contact>) : List<Contact> {
-        val contacts : MutableList<Contact> = emptyList<Contact>() as MutableList<Contact>
+        val contacts : ArrayList<Contact> = ArrayList<Contact>()
         for (contact in contactsMap.values) {
             contacts.add(contact)
         }

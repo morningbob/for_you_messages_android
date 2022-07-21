@@ -30,5 +30,11 @@ enum class RequestContactAppState {
     REJECTED_CONTACT,
 }
 
-
+enum class ContactsList {
+    REQUESTED_CONTACT,
+    ACCEPTED_CONTACT,
+    REJECTED_CONTACT,
+    INVITES,
+    USER_CONTACTS
+}
 
