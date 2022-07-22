@@ -146,7 +146,7 @@ class ContactsFragment : Fragment() {
     private val requestContactAppStateObserver = Observer<RequestContactAppState> { appState ->
         when (appState) {
             RequestContactAppState.ASK_CONFIRMATION -> {
-                confirmRequestAlert(firebaseClient.inviteeContact!!.contactName)
+                confirmRequestAlert(firebaseClient.appInviteeContact!!.contactName)
             }
             else -> 0
         }

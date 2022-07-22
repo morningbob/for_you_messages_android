@@ -29,8 +29,13 @@ import kotlin.collections.HashMap
 
 class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
-    var _currentUser = MutableLiveData<User>()
-    val currentUser get() = _currentUser
+    var _currentUserObject = MutableLiveData<User>()
+    val currentUserObject get() = _currentUserObject
+
+    var _currentUserContact = MutableLiveData<Contact>()
+    val currentUserContact get() = _currentUserContact
+
+
 
     // these variables relates to login and create account interface's edittext fields
     // and the errors associated with them.
@@ -87,10 +92,10 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     var _loggedIn = MutableLiveData<Boolean>(false)
     val loggedIn get() = _loggedIn
 
-    lateinit var coroutineScope: CoroutineScope
+    var coroutineScope = CoroutineScope(Dispatchers.IO)
 
-    var inviteeContact : Contact? = null
-    var inviterContact : Contact? = null
+    var appInviteeContact : Contact? = null
+    var appInviterContac : Contact? = null
 
     var _searchPhoneResult = MutableLiveData<Int>(0)
     val searchPhoneResult get() = _searchPhoneResult
@@ -197,6 +202,15 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     private var authStateListener = FirebaseAuth.AuthStateListener { auth ->
         if (auth.currentUser != null) {
             loginAppState.value = LoginAppState.LOGGED_IN
+            // here, whether we're just authenticated, just registered as new user,
+            // or just start the app, that we logged in previously.
+            // we retrieve the user object and contact object for later uses.
+            coroutineScope.launch {
+                // we get these objects, later we use them to initiate actions
+                // related to contacts
+                currentUserObject.postValue(retrieveUserObject(auth.uid!!))
+                currentUserContact.postValue(retrieveContactByEmail(auth.currentUser!!.email!!))
+            }
         } else {
 
         }
@@ -205,7 +219,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     init {
         auth.addAuthStateListener(authStateListener)
         _allValid.value = arrayListOf(0,0,0,0,0)
-        coroutineScope = CoroutineScope(Dispatchers.IO)
+
 
         // we'll set allValid a 1 entry if the field is valid
         // we also check if other fields are also valid by checking if the allValid arraylist sum to 5
@@ -324,7 +338,23 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 }
             }
         })
-*/
+
+        createAccountAppState.observe(activity as LifecycleOwner, Observer { appState ->
+            when (appState) {
+                CreateAccountAppState.REGISTRATION_SUCCESS -> {
+                    coroutineScope.launch {
+                        // we get these objects, later we use them to initiate actions
+                        // related to contacts
+                        currentUserObject.postValue(retrieveUserObject(auth.uid!!))
+                        currentUserContact.postValue(retrieveContactByEmail(auth.currentUser!!.email!!))
+                    }
+                }
+                else -> 0
+            }
+        })
+
+         */
+
         requestContactAppState.observe(activity as LifecycleOwner, Observer { appState ->
             when (appState) {
                 RequestContactAppState.CONFIRMED_REQUEST -> {
@@ -332,8 +362,8 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                         if (triggerCloudFunction(
                             //inviterEmail = auth.currentUser!!.email!!,
                             //inviteeEmail = inviteeContact!!.contactEmail,
-                            inviterContact = inviterContact!!,
-                            inviteeContact = inviteeContact!!,
+                            inviterContact = currentUserContact.value!!,
+                            inviteeContact = appInviteeContact!!,
                             requestName = "requestContact"
                         )) {
                             requestContactAppState.postValue(RequestContactAppState.REQUEST_SENT)
@@ -346,6 +376,8 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             }
         })
     }
+
+
 
     private fun isEmailValid(email: String) : Boolean {
         return Patterns.EMAIL_ADDRESS.matcher(email).matches()
@@ -379,9 +411,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         // we reset them 0 here, if it is found, then value is 2
         // not found, value is 1, if error, value is 3
         // when both values are 1, proceed to register
-
-        //foundPhone.value = 0
-        //foundEmail.value = 0
 
         Log.i("prepare", "start searching")
 
@@ -434,6 +463,8 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         phoneError.value = ""
         passwordError.value = ""
         confirmPasswordError.value = ""
+        currentUserContact.value = null
+        currentUserObject.value = null
     }
 
     fun createAndSaveNewUser() {
@@ -484,11 +515,39 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             .addOnCompleteListener(activity) { task ->
                 if (task.isSuccessful) {
                     Log.i("signIn user", "success")
+
                 } else {
                     Log.i("signIn user", "error")
                     loginAppState.postValue(LoginAppState.LOGIN_ERROR)
                 }
             }
+    }
+
+    private suspend fun retrieveUserObject(userID: String) : User =
+        suspendCancellableCoroutine<User> {  cancellableContinuation ->
+            Log.i("retrieve user", "start running coroutine")
+            val userRef = database.collection("users").document(userID)
+            userRef.get()
+                .addOnSuccessListener { document ->
+                    if (!document.exists()) {
+                        Log.i("retrieve user", "can't find the user")
+                        cancellableContinuation.resume(User()) {}
+                        // post an error state here
+                        //requestContactAppState.postValue(RequestContactAppState.CONTACT_NOT_FOUND)
+                        createAccountAppState.postValue(CreateAccountAppState.GET_USER_OBJECT_FAILURE)
+                    } else {
+                        Log.i("retrieve user", "found the user")
+                        //document.map { doc ->
+                            cancellableContinuation.resume(document.toObject(User::class.java)!!) {}
+                        //}
+                    }
+                }
+                .addOnFailureListener {
+                    Log.i("retrieve user", "error")
+                    cancellableContinuation.resume(User()) {}
+                    //requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
+                    createAccountAppState.postValue(CreateAccountAppState.GET_USER_OBJECT_FAILURE)
+                }
     }
 
     fun logoutUser() {
@@ -583,15 +642,16 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     fun requestContact(phone: String) {
         coroutineScope.launch {
             val result = searchPhone(phone)
-            if (result == 2) {
+            if (result == 2 && currentUserContact.value != null) {
                 Log.i("inside coroutine, test search phone exists or not", "exist")
-                inviteeContact = retrieveContactByPhone(phone)
-                inviterContact = retrieveContactByEmail(auth!!.currentUser!!.email!!)
-                Log.i("after retrieved contact", "contact name: ${inviteeContact!!.contactName}")
-                if (inviteeContact != null && !inviteeContact!!.contactName.isNullOrEmpty()
-                    && inviterContact != null && !inviterContact!!.contactName.isNullOrEmpty()) {
-                    Log.i("invitee contact", inviteeContact.toString())
-                    Log.i("invitee contact", "name: ${inviteeContact!!.contactName}")
+                appInviteeContact = retrieveContactByPhone(phone)
+                //appInviterContact = retrieveContactByEmail(auth!!.currentUser!!.email!!)
+                //appInviterContact = currentUserContact.value
+                Log.i("after retrieved contact", "contact name: ${appInviteeContact!!.contactName}")
+                if (appInviteeContact != null && !appInviteeContact!!.contactName.isNullOrEmpty()
+                    && currentUserContact.value != null && !currentUserContact.value!!.contactName.isNullOrEmpty()) {
+                    Log.i("invitee contact", appInviteeContact.toString())
+                    Log.i("invitee contact", "name: ${appInviteeContact!!.contactName}")
                     Log.i("test search phone exists", "got back contact")
                     // can show an alert to user to confirm the request, with the name of
                     // the contact
@@ -702,7 +762,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         }
 
 
-    private fun acceptInvite(inviterContact: Contact, inviteeContact: Contact) {
+    private fun processAcceptInviteDatabase(inviterContact: Contact, inviteeContact: Contact) {
         //suspendCancellableCoroutine<Contact> { cancellableContinuation ->
         coroutineScope.launch {
             if (triggerCloudFunction(
@@ -800,6 +860,16 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             contacts.add(contact)
         }
         return contacts
+    }
+
+    fun acceptInvite(chosenContact: Contact) {
+        // check both contacts exist before proceeding
+        if (currentUserContact.value != null) {
+            processAcceptInviteDatabase(inviteeContact = currentUserContact.value!!,
+                inviterContact = chosenContact)
+        } else {
+            Log.i("accept invite", "didn't find the user object.")
+        }
     }
 }
 

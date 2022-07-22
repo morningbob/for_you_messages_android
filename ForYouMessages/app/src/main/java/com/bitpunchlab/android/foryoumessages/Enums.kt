@@ -8,6 +8,7 @@ enum class CreateAccountAppState {
     SAME_PHONE_ERROR,
     REGISTRATION_ERROR,
     REGISTRATION_SUCCESS,
+    GET_USER_OBJECT_FAILURE,
     RESET,
     LOGGED_IN
 }

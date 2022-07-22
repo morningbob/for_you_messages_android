@@ -111,6 +111,7 @@ class CreateAccountFragment : Fragment() {
                 // navigate to main fragment
                 //findNavController().navigate(R.id.action_createAccountFragment_to_MainFragment)
             }
+            else -> 0
         }
     }
 

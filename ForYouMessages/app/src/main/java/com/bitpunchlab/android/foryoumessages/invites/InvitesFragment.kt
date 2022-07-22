@@ -48,10 +48,12 @@ class InvitesFragment : Fragment() {
             .get(ContactsViewModel::class.java)
 
         // we retrieve the user's contacts from the database
-        firebaseClient.retrieveContacts(ContactsList.REQUESTED_CONTACT)
+        firebaseClient.retrieveContacts(ContactsList.INVITES)
 
         invitesAdapter = InvitesAdapter(AcceptOnClickListener { contact ->
-            contactsViewModel.onContactClicked(contact)
+            //contactsViewModel.onContactClicked(contact)
+            Log.i("Invites fragment","the accept button is clicked")
+            firebaseClient.acceptInvite(contact)
         },
         RejectOnClickListener { contact -> {
             contactsViewModel.onContactClicked(contact)
