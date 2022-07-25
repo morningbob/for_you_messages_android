@@ -42,10 +42,27 @@
         android:id="@+id/contactsFragment"
         android:name="com.bitpunchlab.android.foryoumessages.contacts.ContactsFragment"
         android:label="@string/contacts"
-        tools:layout="@layout/fragment_contacts" />
+        tools:layout="@layout/fragment_contacts" >
+        <action
+            android:id="@+id/action_contactsFragment_to_contactFragment"
+            app:destination="@id/contactFragment" />
+    </fragment>
     <fragment
         android:id="@+id/invitesFragment"
         android:name="com.bitpunchlab.android.foryoumessages.invites.InvitesFragment"
         android:label="Invites"
         tools:layout="@layout/fragment_invites" />
+    <fragment
+        android:id="@+id/logoutFragment"
+        android:name="com.bitpunchlab.android.foryoumessages.account.LogoutFragment"
+        android:label="fragment_logout"
+        tools:layout="@layout/fragment_logout" />
+    <fragment
+        android:id="@+id/contactFragment"
+        android:name="com.bitpunchlab.android.foryoumessages.contact.ContactFragment"
+        android:label="ContactFragment" >
+        <argument
+            android:name="contact"
+            app:argType="com.bitpunchlab.android.foryoumessages.models.ContactEntity" />
+    </fragment>
 </navigation>

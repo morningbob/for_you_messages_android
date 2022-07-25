@@ -1,12 +1,13 @@
 package com.bitpunchlab.android.foryoumessages.models
 
-class Contact {
+
+class Contact  {
 
     var contactEmail : String = ""
     var contactName : String = ""
     var contactPhone : String = ""
 
-    constructor()
+    constructor() //: this()
 
     constructor(email: String, name: String, phone: String) : this() {
         //contactID = id

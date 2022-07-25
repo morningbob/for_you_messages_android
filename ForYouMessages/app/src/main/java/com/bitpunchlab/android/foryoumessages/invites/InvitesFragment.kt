@@ -1,5 +1,7 @@
 package com.bitpunchlab.android.foryoumessages.invites
 
+import android.app.AlertDialog
+import android.content.DialogInterface
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -9,12 +11,15 @@ import android.view.ViewGroup
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.get
+import com.bitpunchlab.android.foryoumessages.AcceptContactAppState
 import com.bitpunchlab.android.foryoumessages.ContactsList
 import com.bitpunchlab.android.foryoumessages.R
+import com.bitpunchlab.android.foryoumessages.RejectContactAppState
 import com.bitpunchlab.android.foryoumessages.contacts.ContactsViewModel
 import com.bitpunchlab.android.foryoumessages.databinding.FragmentInvitesBinding
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModelFactory
+import com.bitpunchlab.android.foryoumessages.models.Contact
 
 
 class InvitesFragment : Fragment() {
@@ -24,6 +29,7 @@ class InvitesFragment : Fragment() {
     private lateinit var invitesAdapter: InvitesAdapter
     private lateinit var contactsViewModel: ContactsViewModel
     private lateinit var firebaseClient: FirebaseClientViewModel
+    //private var contact : Contact? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,9 +61,11 @@ class InvitesFragment : Fragment() {
             Log.i("Invites fragment","the accept button is clicked")
             firebaseClient.acceptInvite(contact)
         },
-        RejectOnClickListener { contact -> {
-            contactsViewModel.onContactClicked(contact)
-        } })
+        RejectOnClickListener { contact ->
+            //contactsViewModel.onContactClicked(contact)
+            Log.i("Invites fragment","the reject button is clicked")
+            firebaseClient.rejectInvite(contact)
+        })
         binding.invitesRecycler.adapter = invitesAdapter
 
         contactsViewModel.invites.observe(viewLifecycleOwner, Observer { inviteList ->
@@ -74,6 +82,9 @@ class InvitesFragment : Fragment() {
             contactsViewModel._invites.value = contacts
         })
 
+        firebaseClient.acceptContactAppState.observe(viewLifecycleOwner, acceptContactAppStateObserver)
+        firebaseClient.rejectContactAppState.observe(viewLifecycleOwner, rejectContactAppStateObserver)
+
         return binding.root
     }
 
@@ -82,4 +93,55 @@ class InvitesFragment : Fragment() {
         _binding = null
     }
 
+    private val acceptContactAppStateObserver = Observer<AcceptContactAppState> { appState ->
+        appState?.let {
+            when (appState) {
+                AcceptContactAppState.ASK_CONFIRMATION -> {
+                    confirmAcceptAlert(firebaseClient.appInviterContact!!)
+                }
+                else -> 0
+            }
+        }
+    }
+
+    private val rejectContactAppStateObserver = Observer<RejectContactAppState> { appState ->
+        appState?.let {
+            when (appState) {
+                RejectContactAppState.ASK_CONFIRMATION -> {
+                    confirmRejectAlert(firebaseClient.appInviterContact!!)
+                }
+                else -> 0
+            }
+        }
+    }
+
+    private fun confirmAcceptAlert(contact: Contact) {
+        val confirmAlert = AlertDialog.Builder(requireContext())
+
+        confirmAlert.setCancelable(false)
+        confirmAlert.setPositiveButton("Confirm",
+            DialogInterface.OnClickListener { dialog, button ->
+                firebaseClient.acceptContactAppState.value = AcceptContactAppState.CONFIRMED_ACCEPTANCE
+            })
+        confirmAlert.setNegativeButton(getString(R.string.cancel),
+            DialogInterface.OnClickListener { dialog, button ->
+                // do nothing
+            })
+        confirmAlert.show()
+    }
+
+    private fun confirmRejectAlert(contact: Contact) {
+        val confirmAlert = AlertDialog.Builder(requireContext())
+
+        confirmAlert.setCancelable(false)
+        confirmAlert.setPositiveButton("Confirm",
+            DialogInterface.OnClickListener { dialog, button ->
+                firebaseClient.rejectContactAppState.value = RejectContactAppState.CONFIRMED_REJECTION
+            })
+        confirmAlert.setNegativeButton(getString(R.string.cancel),
+            DialogInterface.OnClickListener { dialog, button ->
+                // do nothing
+            })
+        confirmAlert.show()
+    }
 }

@@ -69,7 +69,7 @@ class MainFragment : Fragment() {
         inflater.inflate(R.menu.menu_main, menu)
         super.onCreateOptionsMenu(menu, inflater)
     }
-
+/*
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.logout -> {
@@ -83,13 +83,13 @@ class MainFragment : Fragment() {
                     || super.onOptionsItemSelected(item)
         }
     }
-/*
+*/
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return NavigationUI.onNavDestinationSelected(item,
             requireView().findNavController())
                 || super.onOptionsItemSelected(item)
     }
- */
+
     private fun generateKeys() {
 
     }

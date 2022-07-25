@@ -4,17 +4,20 @@ import android.app.AlertDialog
 import android.content.DialogInterface
 import android.os.Bundle
 import android.telephony.PhoneNumberUtils
+import android.util.Log
 import android.view.*
 import android.widget.EditText
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.findNavController
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.NavigationUI
 import com.bitpunchlab.android.foryoumessages.*
 import com.bitpunchlab.android.foryoumessages.databinding.FragmentContactsBinding
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModelFactory
+import com.bitpunchlab.android.foryoumessages.models.ContactEntity
 
 
 class ContactsFragment : Fragment() {
@@ -46,6 +49,7 @@ class ContactsFragment : Fragment() {
         firebaseClient.retrieveContacts(ContactsList.USER_CONTACTS)
 
         contactsAdapter = ContactsAdapter(ContactOnClickListener { contact ->
+            // here onclick should show the write message fragment
             contactsViewModel.onContactClicked(contact)
         })
 
@@ -57,7 +61,20 @@ class ContactsFragment : Fragment() {
             contactsAdapter.notifyDataSetChanged()
         })
 
+        // here, when the contact is clicked, we present the options in an alert
+        // for the user to choose.  Like delete, write message
+        contactsViewModel.chosenContact.observe(viewLifecycleOwner, Observer { chosen ->
+            val contact = ContactEntity(contactEmail = chosen.contactEmail,
+                contactName = chosen.contactName,
+                contactPhone = chosen.contactPhone)
+            val bundle = Bundle()
+            bundle.putParcelable("contact", contact)
+            //bundle.
+            findNavController().navigate(R.id.action_contactsFragment_to_contactFragment, bundle)
+        })
+
         firebaseClient.requestContactAppState.observe(viewLifecycleOwner, requestContactAppStateObserver)
+        //firebaseClient.deleteContactAppState.observe(viewLifecycleOwner, )
 
         // we get the latest contact list from firestore and save it in contact view model
         // the adapter only pay attention to contact view model
@@ -113,11 +130,13 @@ class ContactsFragment : Fragment() {
                         phone.count() < 10 ||
                         phone.count() > 13 ||
                     !PhoneNumberUtils.isGlobalPhoneNumber(phone)) {
+                    Log.i("request alert", "invalid phone number.")
                     // empty phone alert
                     invalidPhoneAlert()
                 } else {
                     //val phone = phoneEdittext.text.toString()
-                    // search for the phone number in database
+                    // search for the phone number in database\
+                    Log.i("request alert", "valid phone number.")
                     firebaseClient.requestContact(phone)
                 }
             })
@@ -148,6 +167,21 @@ class ContactsFragment : Fragment() {
             RequestContactAppState.ASK_CONFIRMATION -> {
                 confirmRequestAlert(firebaseClient.appInviteeContact!!.contactName)
             }
+            RequestContactAppState.PHONE_NOT_FOUND -> {
+                phoneNotFoundAlert()
+            }
+            RequestContactAppState.CONTACT_NOT_FOUND -> {
+                contactNotFoundAlert()
+            }
+            else -> 0
+        }
+    }
+
+    private val deleteContactAppStateObserver = Observer<DeleteContactAppState> { appState ->
+        when (appState) {
+            DeleteContactAppState.ASK_CONFIRMATION -> {
+                //confirmDeleteAlert()
+            }
             else -> 0
         }
     }
@@ -161,6 +195,54 @@ class ContactsFragment : Fragment() {
         confirmAlert.setPositiveButton("Confirm",
             DialogInterface.OnClickListener { dialog, button ->
                 firebaseClient.requestContactAppState.value = RequestContactAppState.CONFIRMED_REQUEST
+            })
+
+        confirmAlert.setNegativeButton(getString(R.string.cancel),
+            DialogInterface.OnClickListener { dialog, button ->
+                // do nothing
+            })
+
+        confirmAlert.show()
+    }
+
+    private fun phoneNotFoundAlert() {
+        val notAlert = AlertDialog.Builder(requireContext())
+
+        notAlert.setTitle("Phone Number Not Found")
+        notAlert.setMessage("The phone number is not in our record.  He/She must be our user before you can add him/her to the contacts.")
+
+        notAlert.setPositiveButton(getString(R.string.ok),
+            DialogInterface.OnClickListener { dialog, button ->
+                // do nothing
+            })
+
+        notAlert.show()
+    }
+
+    private fun contactNotFoundAlert() {
+        val notAlert = AlertDialog.Builder(requireContext())
+
+        notAlert.setTitle("Database Error")
+        notAlert.setMessage("We can't get your information from the database currently.  Please try again later.")
+
+        notAlert.setPositiveButton(getString(R.string.ok),
+            DialogInterface.OnClickListener { dialog, button ->
+                // do nothing
+            })
+
+        notAlert.show()
+    }
+
+    private fun confirmDeleteAlert(contactName: String) {
+        val confirmAlert = AlertDialog.Builder(requireContext())
+        confirmAlert.setCancelable(false)
+        confirmAlert.setTitle("Confirm Delete")
+        confirmAlert.setMessage("Are you sure to delete ${contactName} in Contacts?")
+
+        confirmAlert.setPositiveButton(getString(R.string.confirm),
+            DialogInterface.OnClickListener { dialog, button ->
+                //firebaseClient.requestContactAppState.value = RequestContactAppState.CONFIRMED_REQUEST
+                firebaseClient.deleteContactAppState.value = DeleteContactAppState.CONFIRMED_DELETION
             })
 
         confirmAlert.setNegativeButton(getString(R.string.cancel),

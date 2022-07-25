@@ -2,7 +2,13 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
     id 'com.google.gms.google-services'
+    id 'kotlin-kapt'
+    id 'kotlin-parcelize'
+
 }
+
+apply plugin: "androidx.navigation.safeargs.kotlin"
+
 
 android {
     compileSdk 32
@@ -55,4 +61,10 @@ dependencies {
     implementation 'com.google.firebase:firebase-firestore-ktx:24.2.0'
 
     implementation "androidx.lifecycle:lifecycle-extensions:2.0.0"
+
+    // room database
+    implementation 'androidx.room:room-runtime:2.5.0-alpha01'
+    kapt 'androidx.room:room-compiler:2.5.0-alpha01'
+
+
 }

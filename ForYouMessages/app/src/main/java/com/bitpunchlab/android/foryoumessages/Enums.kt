@@ -23,6 +23,7 @@ enum class LoginAppState {
 
 enum class RequestContactAppState {
     CONTACT_NOT_FOUND,
+    PHONE_NOT_FOUND,
     ASK_CONFIRMATION,
     CONFIRMED_REQUEST,
     SERVER_NOT_AVAILABLE,
@@ -31,10 +32,35 @@ enum class RequestContactAppState {
     REJECTED_CONTACT,
 }
 
+enum class AcceptContactAppState {
+    CONTACT_NOT_FOUND,
+    ASK_CONFIRMATION,
+    CONFIRMED_ACCEPTANCE,
+    SERVER_NOT_AVAILABLE,
+    ACCEPTED_CONTACT,
+}
+
+enum class RejectContactAppState {
+    CONTACT_NOT_FOUND,
+    ASK_CONFIRMATION,
+    CONFIRMED_REJECTION,
+    SERVER_NOT_AVAILABLE,
+    REJECTED_CONTACT,
+}
+
+enum class DeleteContactAppState {
+    CONTACT_NOT_FOUND,
+    ASK_CONFIRMATION,
+    CONFIRMED_DELETION,
+    SERVER_NOT_AVAILABLE,
+    DELETED_CONTACT,
+}
+
 enum class ContactsList {
     REQUESTED_CONTACT,
     ACCEPTED_CONTACT,
     REJECTED_CONTACT,
+    DELETED_CONTACT,
     INVITES,
     USER_CONTACTS
 }

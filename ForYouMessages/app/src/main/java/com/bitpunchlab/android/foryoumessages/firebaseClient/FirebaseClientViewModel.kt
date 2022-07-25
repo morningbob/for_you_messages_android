@@ -6,10 +6,7 @@ import android.util.Log
 import android.util.Patterns
 import androidx.lifecycle.*
 import androidx.lifecycle.Observer
-import com.bitpunchlab.android.foryoumessages.ContactsList
-import com.bitpunchlab.android.foryoumessages.CreateAccountAppState
-import com.bitpunchlab.android.foryoumessages.LoginAppState
-import com.bitpunchlab.android.foryoumessages.RequestContactAppState
+import com.bitpunchlab.android.foryoumessages.*
 import com.bitpunchlab.android.foryoumessages.models.Contact
 import com.bitpunchlab.android.foryoumessages.models.User
 import com.google.firebase.auth.FirebaseAuth
@@ -34,9 +31,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     var _currentUserContact = MutableLiveData<Contact>()
     val currentUserContact get() = _currentUserContact
-
-
-
     // these variables relates to login and create account interface's edittext fields
     // and the errors associated with them.
 
@@ -84,6 +78,15 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     var _requestContactAppState = MutableLiveData<RequestContactAppState>()
     val requestContactAppState get() = _requestContactAppState
 
+    var _acceptContactAppState = MutableLiveData<AcceptContactAppState>()
+    val acceptContactAppState get() = _acceptContactAppState
+
+    var _rejectContactAppState = MutableLiveData<RejectContactAppState>()
+    val rejectContactAppState get() = _rejectContactAppState
+
+    var _deleteContactAppState = MutableLiveData<DeleteContactAppState>()
+    val deleteContactAppState get() = _deleteContactAppState
+
     private val database = Firebase.firestore
 
     var foundPhone = MutableLiveData<Int>(0)
@@ -95,7 +98,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     var coroutineScope = CoroutineScope(Dispatchers.IO)
 
     var appInviteeContact : Contact? = null
-    var appInviterContac : Contact? = null
+    var appInviterContact : Contact? = null
 
     var _searchPhoneResult = MutableLiveData<Int>(0)
     val searchPhoneResult get() = _searchPhoneResult
@@ -105,6 +108,8 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     var _userContacts = MutableLiveData<List<Contact>>()
     val userContacts get() = _userContacts
+
+    var contactToDelete : Contact? = null
 
     // whenever user is filling in one field, that field checks for its validity.
     // only if it is valid will the ready to create live data check if all fields are valid
@@ -295,65 +300,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 readyLoginLiveData.value = false
             }
         }
-        /*
-        // these mediator live data are for registration, but I put them here
-        // since I don't want to observe again every time user click send button
-        readyRegisterAuth.addSource(foundPhone) { found ->
-            readyRegisterAuth.value = found == 1 && foundEmail.value!! == 1
-            Log.i("ready register auth", "true from phone")
-            Log.i("found phone ${foundPhone.value.toString()}", "found email ${foundEmail.value.toString()}")
-        }
-        readyRegisterAuth.addSource(foundEmail) { found ->
-            readyRegisterAuth.value = found == 1 && foundPhone.value!! == 1
-            Log.i("ready register auth", "true from email")
-            Log.i("found phone ${foundPhone.value.toString()}", "found email ${foundEmail.value.toString()}")
-        }
-
-
-        // here we start to observe foundPhone
-        foundPhone.observe(activity as LifecycleOwner, Observer { found ->
-            when (found) {
-                1 -> Log.i("phone", "not exist")
-                2 -> Log.i("phone", "already exists")
-                3 -> Log.i("phone", "there is error searching")
-                else -> Log.i("phone", "waiting for result")
-            }
-
-        })
-        foundEmail.observe(activity as LifecycleOwner, Observer { found ->
-            when (found) {
-                1 -> Log.i("email", "not exist")
-                2 -> Log.i("email", "already exists")
-                3 -> Log.i("email", "there is error searching")
-                else -> Log.i("email", "waiting for result")
-            }
-
-        })
-
-        readyRegisterAuth.observe(activity as LifecycleOwner, Observer { value ->
-            value?.let {
-                if (value) {
-                    Log.i("ready proceed?", "proceed")
-                    //registerUser()
-                }
-            }
-        })
-
-        createAccountAppState.observe(activity as LifecycleOwner, Observer { appState ->
-            when (appState) {
-                CreateAccountAppState.REGISTRATION_SUCCESS -> {
-                    coroutineScope.launch {
-                        // we get these objects, later we use them to initiate actions
-                        // related to contacts
-                        currentUserObject.postValue(retrieveUserObject(auth.uid!!))
-                        currentUserContact.postValue(retrieveContactByEmail(auth.currentUser!!.email!!))
-                    }
-                }
-                else -> 0
-            }
-        })
-
-         */
 
         requestContactAppState.observe(activity as LifecycleOwner, Observer { appState ->
             when (appState) {
@@ -375,9 +321,55 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 else -> 0
             }
         })
+
+        acceptContactAppState.observe(activity as LifecycleOwner, Observer { appState ->
+            when (appState) {
+                AcceptContactAppState.CONFIRMED_ACCEPTANCE -> {
+                    // check both contacts exist before proceeding
+                    if (currentUserContact.value != null) {
+                        processAcceptInviteDatabase(inviteeContact = currentUserContact.value!!,
+                            inviterContact = appInviterContact!!)
+                    } else {
+                        Log.i("accept invite", "didn't find the user object.")
+                        acceptContactAppState.postValue(AcceptContactAppState.CONTACT_NOT_FOUND)
+                    }
+                }
+                else -> 0
+            }
+        })
+
+        rejectContactAppState.observe(activity as LifecycleOwner, Observer { appState ->
+            when (appState) {
+                RejectContactAppState.CONFIRMED_REJECTION -> {
+                    // check both contacts exist before proceeding
+                    if (currentUserContact.value != null) {
+                        processRejectInviteDatabase(inviteeContact = currentUserContact.value!!,
+                            inviterContact = appInviterContact!!)
+                    } else {
+                        Log.i("reject invite", "didn't find the user object.")
+                        rejectContactAppState.postValue(RejectContactAppState.CONTACT_NOT_FOUND)
+                    }
+                }
+                else -> 0
+            }
+        })
+
+        deleteContactAppState.observe(activity as LifecycleOwner, Observer { appState ->
+            when (appState) {
+                DeleteContactAppState.CONFIRMED_DELETION -> {
+                    // check both contacts exist before proceeding
+                    if (currentUserContact.value != null) {
+                        processRejectInviteDatabase(inviteeContact = currentUserContact.value!!,
+                            inviterContact = appInviterContact!!)
+                    } else {
+                        Log.i("reject invite", "didn't find the user object.")
+                        rejectContactAppState.postValue(RejectContactAppState.CONTACT_NOT_FOUND)
+                    }
+                }
+                else -> 0
+            }
+        })
     }
-
-
 
     private fun isEmailValid(email: String) : Boolean {
         return Patterns.EMAIL_ADDRESS.matcher(email).matches()
@@ -645,8 +637,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             if (result == 2 && currentUserContact.value != null) {
                 Log.i("inside coroutine, test search phone exists or not", "exist")
                 appInviteeContact = retrieveContactByPhone(phone)
-                //appInviterContact = retrieveContactByEmail(auth!!.currentUser!!.email!!)
-                //appInviterContact = currentUserContact.value
                 Log.i("after retrieved contact", "contact name: ${appInviteeContact!!.contactName}")
                 if (appInviteeContact != null && !appInviteeContact!!.contactName.isNullOrEmpty()
                     && currentUserContact.value != null && !currentUserContact.value!!.contactName.isNullOrEmpty()) {
@@ -659,6 +649,12 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 } else  {
                     //requestContactAppState.postValue(RequestContactAppState.CONTACT_NOT_FOUND)
                 }
+            } else if (currentUserContact.value == null){
+                Log.i("request contact", "current user contact is null")
+                requestContactAppState.postValue(RequestContactAppState.CONTACT_NOT_FOUND)
+            } else {
+                Log.i("request contact", "search phone result is not 2.")
+                requestContactAppState.postValue(RequestContactAppState.PHONE_NOT_FOUND)
             }
         }
 
@@ -770,31 +766,31 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                     inviteeContact = inviteeContact, requestName = "acceptContact"
                 )
             ) {
-                requestContactAppState.postValue(RequestContactAppState.ACCEPTED_CONTACT)
+                acceptContactAppState.postValue(AcceptContactAppState.ACCEPTED_CONTACT)
             } else {
-                requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
+                acceptContactAppState.postValue(AcceptContactAppState.SERVER_NOT_AVAILABLE)
             }
         }
         //}
     }
 
-    private fun rejectInvite(inviterContact: Contact, inviteeContact: Contact) {
+    private fun processRejectInviteDatabase(inviterContact: Contact, inviteeContact: Contact) {
         coroutineScope.launch {
             if (triggerCloudFunction(
                     inviterContact = inviterContact,
                     inviteeContact = inviteeContact, requestName = "rejectContact"
                 )
             ) {
-                requestContactAppState.postValue(RequestContactAppState.REJECTED_CONTACT)
+                rejectContactAppState.postValue(RejectContactAppState.REJECTED_CONTACT)
             } else {
-                requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
+                rejectContactAppState.postValue(RejectContactAppState.SERVER_NOT_AVAILABLE)
             }
         }
     }
 
     // in delete case, inviter is the original user
     // invitee is the target user
-    private fun deleteContact(targetContact: Contact, userContact: Contact) {
+    private fun processDeleteContactDatabase(targetContact: Contact, userContact: Contact) {
         coroutineScope.launch {
             if (triggerCloudFunction(
                     inviterContact = userContact,
@@ -820,6 +816,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 ContactsList.REQUESTED_CONTACT -> user!!.requestedContacts
                 ContactsList.ACCEPTED_CONTACT -> user!!.acceptedContacts
                 ContactsList.REJECTED_CONTACT -> user!!.rejectedContacts
+                ContactsList.DELETED_CONTACT -> user!!.deletedContacts
                 ContactsList.INVITES -> user!!.invites
                 ContactsList.USER_CONTACTS -> user!!.contacts
             }
@@ -863,13 +860,18 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     }
 
     fun acceptInvite(chosenContact: Contact) {
-        // check both contacts exist before proceeding
-        if (currentUserContact.value != null) {
-            processAcceptInviteDatabase(inviteeContact = currentUserContact.value!!,
-                inviterContact = chosenContact)
-        } else {
-            Log.i("accept invite", "didn't find the user object.")
-        }
+        appInviterContact = chosenContact
+        acceptContactAppState.value = AcceptContactAppState.ASK_CONFIRMATION
+    }
+
+    fun rejectInvite(chosenContact: Contact) {
+        appInviterContact = chosenContact
+        rejectContactAppState.value = RejectContactAppState.ASK_CONFIRMATION
+    }
+
+    fun deleteContact(chosenContact: Contact) {
+        appInviterContact = chosenContact
+
     }
 }
 
