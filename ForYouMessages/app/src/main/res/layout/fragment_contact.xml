@@ -10,79 +10,86 @@
             type="com.bitpunchlab.android.foryoumessages.models.Contact" />
     </data>
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:context=".contact.ContactFragment">
+        android:fillViewport="true"
+        android:background="@color/blue_background">
 
-        <ImageView
-            android:id="@+id/art_home"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:layout_marginTop="50dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/user"
-            tools:srcCompat="@drawable/user" />
-
-        <TextView
-            android:id="@+id/textview_contact_name"
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="50dp"
-            android:text="@{contact.contactName}"
-            android:textAlignment="center"
-            android:textSize="@dimen/title_text_size"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/art_home"/>
+            android:layout_height="match_parent"
+            tools:context=".contact.ContactFragment">
 
-        <TextView
-            android:id="@+id/textview_contact_phone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
-            android:text="@{contact.contactPhone}"
-            android:textAlignment="center"
-            android:textSize="@dimen/title_content_text_size"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/textview_contact_name"/>
+            <ImageView
+                android:id="@+id/art_home"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_marginTop="50dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:srcCompat="@drawable/user"
+                tools:srcCompat="@drawable/user" />
 
-        <LinearLayout
-            android:id="@+id/layout_buttons"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:layout_marginLeft="30dp"
-            android:layout_marginRight="30dp"
-            android:orientation="horizontal"
-            android:weightSum="2"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/textview_contact_phone" >
-
-            <Button
-                android:id="@+id/button_delete"
-                android:layout_width="0dp"
+            <TextView
+                android:id="@+id/textview_contact_name"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Delete Contact"
-                android:textSize="@dimen/button_text_size"
-                />
+                android:layout_marginTop="50dp"
+                android:text="@{contact.contactName}"
+                android:textAlignment="center"
+                android:textSize="@dimen/title_text_size"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/art_home"/>
 
-            <Button
-                android:id="@+id/button_write_message"
-                android:layout_width="0dp"
+            <TextView
+                android:id="@+id/textview_contact_phone"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_marginTop="30dp"
+                android:text="@{contact.contactPhone}"
+                android:textAlignment="center"
+                android:textSize="@dimen/title_content_text_size"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/textview_contact_name"/>
+
+            <LinearLayout
+                android:id="@+id/layout_buttons"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
                 android:layout_marginLeft="30dp"
-                android:text="Write Message"
-                android:textSize="@dimen/button_text_size"
-                />
+                android:layout_marginRight="30dp"
+                android:orientation="horizontal"
+                android:weightSum="2"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/textview_contact_phone" >
 
-        </LinearLayout>
+                <Button
+                    android:id="@+id/button_delete"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Delete Contact"
+                    android:textSize="@dimen/button_text_size"
+                    />
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+                <Button
+                    android:id="@+id/button_write_message"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginLeft="30dp"
+                    android:text="Write Message"
+                    android:textSize="@dimen/button_text_size"
+                    />
+
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </ScrollView>
 </layout>

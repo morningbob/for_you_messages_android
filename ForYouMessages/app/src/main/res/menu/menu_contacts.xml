@@ -11,6 +11,12 @@
         android:orderInCategory="100"
         android:title="Invites"
         app:showAsAction="never" />
+
+    <item
+        android:id="@+id/requestedContactsFragment"
+        android:orderInCategory="100"
+        android:title="Requested Contacts"
+        app:showAsAction="never" />
     <item
         android:id="@+id/logout"
         android:orderInCategory="100"

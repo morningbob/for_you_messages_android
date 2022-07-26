@@ -60,9 +60,14 @@
     <fragment
         android:id="@+id/contactFragment"
         android:name="com.bitpunchlab.android.foryoumessages.contact.ContactFragment"
-        android:label="ContactFragment" >
+        android:label="Contact" >
+
         <argument
             android:name="contact"
             app:argType="com.bitpunchlab.android.foryoumessages.models.ContactEntity" />
     </fragment>
+    <fragment
+        android:id="@+id/requestedContactsFragment"
+        android:name="com.bitpunchlab.android.foryoumessages.requestedContacts.RequestedContactsFragment"
+        android:label="Requested Contacts" />
 </navigation>

@@ -17,6 +17,7 @@ import com.bitpunchlab.android.foryoumessages.*
 import com.bitpunchlab.android.foryoumessages.databinding.FragmentContactsBinding
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModelFactory
+import com.bitpunchlab.android.foryoumessages.models.Contact
 import com.bitpunchlab.android.foryoumessages.models.ContactEntity
 
 
@@ -27,6 +28,8 @@ class ContactsFragment : Fragment() {
     private lateinit var contactsAdapter: ContactsAdapter
     private lateinit var contactsViewModel: ContactsViewModel
     private lateinit var firebaseClient: FirebaseClientViewModel
+    //private var contact: Contact? = null
+    private var contactToBeDeleted: Contact? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,20 +64,34 @@ class ContactsFragment : Fragment() {
             contactsAdapter.notifyDataSetChanged()
         })
 
+        // if the user object or the contact object is still null after retrieving from
+        // auth, we'll get it again here.
+        firebaseClient.getUserAndContactObject()
+
         // here, when the contact is clicked, we present the options in an alert
         // for the user to choose.  Like delete, write message
         contactsViewModel.chosenContact.observe(viewLifecycleOwner, Observer { chosen ->
-            val contact = ContactEntity(contactEmail = chosen.contactEmail,
-                contactName = chosen.contactName,
-                contactPhone = chosen.contactPhone)
-            val bundle = Bundle()
-            bundle.putParcelable("contact", contact)
-            //bundle.
-            findNavController().navigate(R.id.action_contactsFragment_to_contactFragment, bundle)
+            chosen?.let {
+                contactToBeDeleted = chosen
+                val contact = ContactEntity(
+                    contactEmail = chosen.contactEmail,
+                    contactName = chosen.contactName,
+                    contactPhone = chosen.contactPhone
+                )
+                val bundle = Bundle()
+                bundle.putParcelable("contact", contact)
+
+                contactsViewModel.finishedContact()
+
+                findNavController().navigate(
+                    R.id.action_contactsFragment_to_contactFragment,
+                    bundle
+                )
+            }
         })
 
         firebaseClient.requestContactAppState.observe(viewLifecycleOwner, requestContactAppStateObserver)
-        //firebaseClient.deleteContactAppState.observe(viewLifecycleOwner, )
+        firebaseClient.deleteContactAppState.observe(viewLifecycleOwner, deleteContactAppStateObserver)
 
         // we get the latest contact list from firestore and save it in contact view model
         // the adapter only pay attention to contact view model
@@ -180,7 +197,7 @@ class ContactsFragment : Fragment() {
     private val deleteContactAppStateObserver = Observer<DeleteContactAppState> { appState ->
         when (appState) {
             DeleteContactAppState.ASK_CONFIRMATION -> {
-                //confirmDeleteAlert()
+                confirmDeleteAlert(contactToBeDeleted!!)
             }
             else -> 0
         }
@@ -233,11 +250,11 @@ class ContactsFragment : Fragment() {
         notAlert.show()
     }
 
-    private fun confirmDeleteAlert(contactName: String) {
+    private fun confirmDeleteAlert(contact: Contact) {
         val confirmAlert = AlertDialog.Builder(requireContext())
         confirmAlert.setCancelable(false)
         confirmAlert.setTitle("Confirm Delete")
-        confirmAlert.setMessage("Are you sure to delete ${contactName} in Contacts?")
+        confirmAlert.setMessage("Are you sure to delete ${contact.contactName} in Contacts?")
 
         confirmAlert.setPositiveButton(getString(R.string.confirm),
             DialogInterface.OnClickListener { dialog, button ->

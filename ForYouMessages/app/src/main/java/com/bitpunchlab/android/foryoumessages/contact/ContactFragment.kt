@@ -3,6 +3,7 @@ package com.bitpunchlab.android.foryoumessages.contact
 import android.app.AlertDialog
 import android.content.DialogInterface
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -25,7 +26,6 @@ class ContactFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var firebaseClient: FirebaseClientViewModel
     private var contact : Contact? = null
-    //private lateinit var
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,12 +41,21 @@ class ContactFragment : Fragment() {
             .get(FirebaseClientViewModel::class.java)
 
         val contactEntity = requireArguments().getParcelable<ContactEntity>("contact")
+
+        //val bundle = arguments
+        ///val args = ContactFragmentArgs.fromBundle(bundle!!)
+        //val contactEntity = args.contact
+
         contact = Contact(name = contactEntity!!.contactName,
             email = contactEntity!!.contactEmail,
             phone = contactEntity!!.contactPhone)
 
+        binding.lifecycleOwner = viewLifecycleOwner
+        binding.contact = contact
+
         binding.buttonDelete.setOnClickListener {
-            firebaseClient.deleteContactAppState.value = DeleteContactAppState.ASK_CONFIRMATION
+            //firebaseClient.deleteContactAppState.value = DeleteContactAppState.ASK_CONFIRMATION
+            firebaseClient.deleteContact(contact!!)
         }
 
         firebaseClient.deleteContactAppState.observe(viewLifecycleOwner, deleteContactAppStateObserver)
@@ -65,7 +74,8 @@ class ContactFragment : Fragment() {
                 deleteContactAlert()
             }
             DeleteContactAppState.CONFIRMED_DELETION -> {
-                firebaseClient.deleteContact(contact!!)
+                Log.i("delete app state observer", "contact name: ${contact!!.contactName}")
+                //firebaseClient.deleteContact(contact!!)
             }
             else -> 0
         }

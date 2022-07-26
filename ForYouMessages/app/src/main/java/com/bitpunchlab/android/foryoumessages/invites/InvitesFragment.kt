@@ -29,7 +29,7 @@ class InvitesFragment : Fragment() {
     private lateinit var invitesAdapter: InvitesAdapter
     private lateinit var contactsViewModel: ContactsViewModel
     private lateinit var firebaseClient: FirebaseClientViewModel
-    //private var contact : Contact? = null
+    private var targetContact : Contact? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,6 +60,7 @@ class InvitesFragment : Fragment() {
             //contactsViewModel.onContactClicked(contact)
             Log.i("Invites fragment","the accept button is clicked")
             firebaseClient.acceptInvite(contact)
+
         },
         RejectOnClickListener { contact ->
             //contactsViewModel.onContactClicked(contact)
@@ -99,6 +100,12 @@ class InvitesFragment : Fragment() {
                 AcceptContactAppState.ASK_CONFIRMATION -> {
                     confirmAcceptAlert(firebaseClient.appInviterContact!!)
                 }
+                // clear the contact here from the invites list
+                AcceptContactAppState.CONFIRMED_ACCEPTANCE -> {
+                    targetContact?.let {
+                        contactsViewModel.removeContact(targetContact!!)
+                    }
+                }
                 else -> 0
             }
         }
@@ -109,6 +116,12 @@ class InvitesFragment : Fragment() {
             when (appState) {
                 RejectContactAppState.ASK_CONFIRMATION -> {
                     confirmRejectAlert(firebaseClient.appInviterContact!!)
+                }
+                // clear the contact here from the invites list
+                RejectContactAppState.CONFIRMED_REJECTION -> {
+                    targetContact?.let {
+                        contactsViewModel.removeContact(targetContact!!)
+                    }
                 }
                 else -> 0
             }
@@ -122,6 +135,7 @@ class InvitesFragment : Fragment() {
         confirmAlert.setPositiveButton("Confirm",
             DialogInterface.OnClickListener { dialog, button ->
                 firebaseClient.acceptContactAppState.value = AcceptContactAppState.CONFIRMED_ACCEPTANCE
+                // clear the contact from the invites list
             })
         confirmAlert.setNegativeButton(getString(R.string.cancel),
             DialogInterface.OnClickListener { dialog, button ->
@@ -137,6 +151,7 @@ class InvitesFragment : Fragment() {
         confirmAlert.setPositiveButton("Confirm",
             DialogInterface.OnClickListener { dialog, button ->
                 firebaseClient.rejectContactAppState.value = RejectContactAppState.CONFIRMED_REJECTION
+
             })
         confirmAlert.setNegativeButton(getString(R.string.cancel),
             DialogInterface.OnClickListener { dialog, button ->

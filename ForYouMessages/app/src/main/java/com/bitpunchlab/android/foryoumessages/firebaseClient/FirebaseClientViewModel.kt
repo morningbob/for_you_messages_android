@@ -109,7 +109,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     var _userContacts = MutableLiveData<List<Contact>>()
     val userContacts get() = _userContacts
 
-    var contactToDelete : Contact? = null
 
     // whenever user is filling in one field, that field checks for its validity.
     // only if it is valid will the ready to create live data check if all fields are valid
@@ -210,12 +209,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             // here, whether we're just authenticated, just registered as new user,
             // or just start the app, that we logged in previously.
             // we retrieve the user object and contact object for later uses.
-            coroutineScope.launch {
-                // we get these objects, later we use them to initiate actions
-                // related to contacts
-                currentUserObject.postValue(retrieveUserObject(auth.uid!!))
-                currentUserContact.postValue(retrieveContactByEmail(auth.currentUser!!.email!!))
-            }
+            getUserAndContactObject()
         } else {
 
         }
@@ -359,11 +353,11 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 DeleteContactAppState.CONFIRMED_DELETION -> {
                     // check both contacts exist before proceeding
                     if (currentUserContact.value != null) {
-                        processRejectInviteDatabase(inviteeContact = currentUserContact.value!!,
-                            inviterContact = appInviterContact!!)
+                        processDeleteContactDatabase(targetContact = appInviteeContact!!,
+                            userContact = currentUserContact.value!!)
                     } else {
-                        Log.i("reject invite", "didn't find the user object.")
-                        rejectContactAppState.postValue(RejectContactAppState.CONTACT_NOT_FOUND)
+                        Log.i("can't delete", "didn't find the user object.")
+                        deleteContactAppState.postValue(DeleteContactAppState.CONTACT_NOT_FOUND)
                     }
                 }
                 else -> 0
@@ -515,6 +509,19 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             }
     }
 
+    fun getUserAndContactObject() {
+        coroutineScope.launch {
+            if (currentUserObject.value == null) {
+                currentUserObject.postValue(retrieveUserObject(auth.uid!!))
+            }
+            if (currentUserContact.value == null) {
+                // we get these objects, later we use them to initiate actions
+                // related to contacts
+                currentUserContact.postValue(retrieveContactByEmail(auth.currentUser!!.email!!))
+            }
+        }
+    }
+
     private suspend fun retrieveUserObject(userID: String) : User =
         suspendCancellableCoroutine<User> {  cancellableContinuation ->
             Log.i("retrieve user", "start running coroutine")
@@ -660,18 +667,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     }
 
-    // there should be a list of accepted request
-    // in the list, we add the contact to contact list and save to database
-    // notify user the request was accepted
-    fun addContact() {
-
-    }
-
-    // add to the contact list of the user
-    // here we need to update the original user's accepted request
-    // and notify the original user
-    // we also add the user's contact into the original user's contact list
-
 
     // here we need to update the original user's requestedContacts list, delete it
     // and notify the original user
@@ -795,12 +790,12 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             if (triggerCloudFunction(
                     inviterContact = userContact,
                     inviteeContact = targetContact,
-                    requestName = "rejectContact"
+                    requestName = "deleteContact"
                 )
             ) {
-                requestContactAppState.postValue(RequestContactAppState.REJECTED_CONTACT)
+                deleteContactAppState.postValue(DeleteContactAppState.DELETED_CONTACT)
             } else {
-                requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
+                deleteContactAppState.postValue(DeleteContactAppState.SERVER_NOT_AVAILABLE)
             }
         }
     }
@@ -870,8 +865,10 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     }
 
     fun deleteContact(chosenContact: Contact) {
-        appInviterContact = chosenContact
-
+        appInviteeContact = chosenContact
+        //Log.i("delete contact", "current user contact ${currentUserContact.value.toString()}")
+        appInviterContact = currentUserContact.value
+        deleteContactAppState.value = DeleteContactAppState.ASK_CONFIRMATION
     }
 }
 
