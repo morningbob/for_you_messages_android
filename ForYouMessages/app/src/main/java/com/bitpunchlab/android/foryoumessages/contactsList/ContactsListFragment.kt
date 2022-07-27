@@ -56,6 +56,7 @@ class ContactsListFragment : Fragment() {
         firebaseClient.userContacts.value = null
         firebaseClient.retrieveContacts(currentContactType!!)
         binding.textviewTitle.text = ContactsTypeTitleMap[currentContactType]
+
         binding.lifecycleOwner = viewLifecycleOwner
         binding.contactsListRecycler.adapter = contactsListAdapter
 
