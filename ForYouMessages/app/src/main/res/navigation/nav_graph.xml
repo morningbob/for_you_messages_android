@@ -14,6 +14,9 @@
         <action
             android:id="@+id/action_MainFragment_to_LoginFragment"
             app:destination="@id/LoginFragment" />
+        <action
+            android:id="@+id/action_MainFragment_to_contactsFragment"
+            app:destination="@id/contactsFragment" />
     </fragment>
     <fragment
         android:id="@+id/LoginFragment"
@@ -46,6 +49,15 @@
         <action
             android:id="@+id/action_contactsFragment_to_contactFragment"
             app:destination="@id/contactFragment" />
+        <action
+            android:id="@+id/action_contactsFragment_to_requestedContactsFragment"
+            app:destination="@id/requestedContactsFragment" />
+        <action
+            android:id="@+id/action_contactsFragment_to_invitesFragment"
+            app:destination="@id/invitesFragment" />
+        <action
+            android:id="@+id/action_contactsFragment_to_contactsListFragment"
+            app:destination="@id/contactsListFragment" />
     </fragment>
     <fragment
         android:id="@+id/invitesFragment"
@@ -70,4 +82,11 @@
         android:id="@+id/requestedContactsFragment"
         android:name="com.bitpunchlab.android.foryoumessages.requestedContacts.RequestedContactsFragment"
         android:label="Requested Contacts" />
+    <fragment
+        android:id="@+id/contactsListFragment"
+        android:name="com.bitpunchlab.android.foryoumessages.contactsList.ContactsListFragment"
+        android:label="ContactsListFragment" >
+        <argument android:name="contactType"
+            app:argType="com.bitpunchlab.android.foryoumessages.ContactsList" />
+    </fragment>
 </navigation>

@@ -1,4 +1,4 @@
-package com.bitpunchlab.android.foryoumessages.requestedContacts
+package com.bitpunchlab.android.foryoumessages.acceptedContacts
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -12,18 +12,19 @@ import com.bitpunchlab.android.foryoumessages.R
 import com.bitpunchlab.android.foryoumessages.contacts.ContactOnClickListener
 import com.bitpunchlab.android.foryoumessages.contacts.ContactsAdapter
 import com.bitpunchlab.android.foryoumessages.contacts.ContactsViewModel
-import com.bitpunchlab.android.foryoumessages.databinding.FragmentRequestedContactsBinding
+import com.bitpunchlab.android.foryoumessages.databinding.FragmentAcceptedContactsBinding
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModelFactory
 
 
-class RequestedContactsFragment : Fragment() {
+class AcceptedContactsFragment : Fragment() {
 
-    private var _binding : FragmentRequestedContactsBinding? = null
+    private var _binding : FragmentAcceptedContactsBinding? = null
     private val binding get() = _binding!!
+    private lateinit var firebaseClient : FirebaseClientViewModel
+    private lateinit var acceptedAdapter: ContactsAdapter
     private lateinit var contactsViewModel: ContactsViewModel
-    private lateinit var contactsAdapter: ContactsAdapter
-    private lateinit var firebaseClient: FirebaseClientViewModel
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,32 +35,26 @@ class RequestedContactsFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        _binding = FragmentRequestedContactsBinding.inflate(inflater, container, false)
-        contactsViewModel = ViewModelProvider(requireActivity()).get(ContactsViewModel::class.java)
-        contactsAdapter = ContactsAdapter(ContactOnClickListener { contact ->
-            contactsViewModel.onContactClicked(contact)
-        })
+        // Inflate the layout for this fragment
+        _binding = FragmentAcceptedContactsBinding.inflate(inflater, container, false)
         firebaseClient = ViewModelProvider(requireActivity(), FirebaseClientViewModelFactory(requireActivity()))
             .get(FirebaseClientViewModel::class.java)
+        contactsViewModel = ViewModelProvider(requireActivity()).get(ContactsViewModel::class.java)
+        acceptedAdapter = ContactsAdapter(ContactOnClickListener { contact ->
+            contactsViewModel.onContactClicked(contact)
+        })
+        firebaseClient.retrieveContacts(ContactsList.ACCEPTED_CONTACT)
         binding.lifecycleOwner = viewLifecycleOwner
-        binding.requestedRecycler.adapter = contactsAdapter
+        binding.acceptedRecycler.adapter = acceptedAdapter
 
-        firebaseClient.retrieveContacts(ContactsList.REQUESTED_CONTACT)
-
-        contactsViewModel.requestedList.observe(viewLifecycleOwner, Observer { requested ->
-            //if (requested != null || requested.size != 0)
-            requested?.let {
-                contactsAdapter.submitList(requested)
-                contactsAdapter.notifyDataSetChanged()
-            }
+        contactsViewModel.acceptedList.observe(viewLifecycleOwner, Observer { accepted ->
+            acceptedAdapter.submitList(accepted)
+            acceptedAdapter.notifyDataSetChanged()
         })
 
         firebaseClient.userContacts.observe(viewLifecycleOwner, Observer { contacts ->
-            if (!contacts.isNullOrEmpty()) {
-                contactsViewModel._requestedList.value = contacts
-            }
+            contactsViewModel._acceptedList.value = contacts
         })
-
 
         return binding.root
     }
@@ -68,5 +63,4 @@ class RequestedContactsFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
-
 }

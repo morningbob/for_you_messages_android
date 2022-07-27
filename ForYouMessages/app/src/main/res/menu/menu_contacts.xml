@@ -7,16 +7,35 @@
         android:title="Add Contact"
         app:showAsAction="never" />
     <item
-        android:id="@+id/invitesFragment"
+        android:id="@+id/toInvites"
         android:orderInCategory="100"
         android:title="Invites"
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/requestedContactsFragment"
+        android:id="@+id/toRequestedContacts"
         android:orderInCategory="100"
         android:title="Requested Contacts"
         app:showAsAction="never" />
+
+    <item
+        android:id="@+id/toAcceptedContacts"
+        android:orderInCategory="100"
+        android:title="Accepted Contacts"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/toRejectedContacts"
+        android:orderInCategory="100"
+        android:title="Rejected Contacts"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/toDeletedContacts"
+        android:orderInCategory="100"
+        android:title="Deleted Contacts"
+        app:showAsAction="never" />
+
     <item
         android:id="@+id/logout"
         android:orderInCategory="100"

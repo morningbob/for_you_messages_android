@@ -4,11 +4,17 @@
     tools:context="com.bitpunchlab.android.foryoumessages.MainActivity">
 
     <item
+        android:id="@+id/toContacts"
+        android:orderInCategory="100"
+        android:title="@string/contacts"
+        app:showAsAction="never" />
+<!--
+    <item
         android:id="@+id/contactsFragment"
         android:orderInCategory="100"
         android:title="@string/contacts"
         app:showAsAction="never" />
-
+-->
     <item
         android:id="@+id/logoutFragment"
         android:orderInCategory="100"

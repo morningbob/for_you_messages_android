@@ -3,8 +3,10 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="app/src/main/res/layout/fragment_accepted_contacts.xml" value="0.1651469098277609" />
         <entry key="app/src/main/res/layout/fragment_contact.xml" value="0.1651469098277609" />
         <entry key="app/src/main/res/layout/fragment_contacts.xml" value="0.1651469098277609" />
+        <entry key="app/src/main/res/layout/fragment_contacts_list.xml" value="0.1651469098277609" />
         <entry key="app/src/main/res/layout/fragment_create_account.xml" value="0.2033514492753623" />
         <entry key="app/src/main/res/layout/fragment_invites.xml" value="0.1651469098277609" />
         <entry key="app/src/main/res/layout/fragment_login.xml" value="0.2033514492753623" />

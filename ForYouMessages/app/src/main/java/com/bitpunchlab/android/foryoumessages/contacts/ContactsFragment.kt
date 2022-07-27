@@ -99,6 +99,8 @@ class ContactsFragment : Fragment() {
             contactsViewModel.contacts.value = contacts
         })
 
+        firebaseClient.loginAppState.observe(viewLifecycleOwner, loginAppStateObserver)
+
         return binding.root
     }
 
@@ -125,6 +127,41 @@ class ContactsFragment : Fragment() {
                 firebaseClient.createAccountAppState.value = CreateAccountAppState.NORMAL
                 true
             }
+            // invites fragment has it's own custom fragment
+            R.id.toInvites -> {
+                findNavController().navigate(R.id.action_contactsFragment_to_invitesFragment)
+                true
+            }
+            // requested contacts uses general contact list fragment to display contacts
+            R.id.toRequestedContacts -> {
+                val bundle = Bundle()
+                bundle.putParcelable("contactType", ContactsList.REQUESTED_CONTACT)
+                findNavController()
+                    .navigate(R.id.action_contactsFragment_to_contactsListFragment, bundle)
+                true
+            }
+            R.id.toAcceptedContacts -> {
+                val bundle = Bundle()
+                bundle.putParcelable("contactType", ContactsList.ACCEPTED_CONTACT)
+                findNavController()
+                    .navigate(R.id.action_contactsFragment_to_contactsListFragment, bundle)
+                true
+            }
+            R.id.toRejectedContacts -> {
+                val bundle = Bundle()
+                bundle.putParcelable("contactType", ContactsList.REJECTED_CONTACT)
+                findNavController()
+                    .navigate(R.id.action_contactsFragment_to_contactsListFragment, bundle)
+                true
+            }
+            R.id.toDeletedContacts -> {
+                val bundle = Bundle()
+                bundle.putParcelable("contactType", ContactsList.DELETED_CONTACT)
+                findNavController()
+                    .navigate(R.id.action_contactsFragment_to_contactsListFragment, bundle)
+                true
+            }
+
             else -> NavigationUI.onNavDestinationSelected(item,
                 requireView().findNavController())
                     || super.onOptionsItemSelected(item)
@@ -268,5 +305,18 @@ class ContactsFragment : Fragment() {
             })
 
         confirmAlert.show()
+    }
+
+    private var loginAppStateObserver = Observer<LoginAppState> { appState ->
+        when (appState) {
+            LoginAppState.LOGGED_OUT -> {
+                // return to login page, or pop off self
+                findNavController().popBackStack()
+                Log.i("contacts fragment, app state", "logged out once")
+            }
+            else -> {
+
+            }
+        }
     }
 }

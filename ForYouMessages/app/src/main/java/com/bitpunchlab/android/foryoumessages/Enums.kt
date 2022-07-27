@@ -1,5 +1,8 @@
 package com.bitpunchlab.android.foryoumessages
 
+import android.os.Parcelable
+import kotlinx.android.parcel.Parcelize
+
 enum class CreateAccountAppState {
     NORMAL,
     READY_REGISTER,
@@ -56,7 +59,8 @@ enum class DeleteContactAppState {
     DELETED_CONTACT,
 }
 
-enum class ContactsList {
+@Parcelize
+enum class ContactsList : Parcelable{
     REQUESTED_CONTACT,
     ACCEPTED_CONTACT,
     REJECTED_CONTACT,
@@ -64,4 +68,6 @@ enum class ContactsList {
     INVITES,
     USER_CONTACTS
 }
+
+
 
