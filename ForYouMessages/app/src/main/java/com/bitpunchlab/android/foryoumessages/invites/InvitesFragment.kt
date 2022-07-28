@@ -40,11 +40,14 @@ class InvitesFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+
         _binding = FragmentInvitesBinding.inflate(inflater, container, false)
         binding.lifecycleOwner = viewLifecycleOwner
         firebaseClient = ViewModelProvider(requireActivity(), FirebaseClientViewModelFactory(requireActivity()))
             .get(FirebaseClientViewModel::class.java)
-
+        // if the user object or the contact object is still null after retrieving from
+        // auth, we'll get it again here.
+        firebaseClient.getUserAndContactObject()
         // the invites list from firestore just list the emails
         // we need to get the contact object for the user
         // that needs too many queries.  I'm going to change
@@ -54,7 +57,13 @@ class InvitesFragment : Fragment() {
             .get(ContactsViewModel::class.java)
 
         // we retrieve the user's contacts from the database
-        firebaseClient.retrieveContacts(ContactsList.INVITES)
+        //firebaseClient.retrieveContacts(ContactsList.INVITES)
+        // we now retrieve from the user entity object
+        firebaseClient.currentUserEntity.observe(viewLifecycleOwner, Observer { currentUser ->
+            currentUser?.let {
+                contactsViewModel.invites.value = currentUser.invites
+            }
+        })
 
         invitesAdapter = InvitesAdapter(AcceptOnClickListener { contact ->
             //contactsViewModel.onContactClicked(contact)
@@ -80,7 +89,7 @@ class InvitesFragment : Fragment() {
         // the adapter only pay attention to contact view model
         firebaseClient.userContacts.observe(viewLifecycleOwner, Observer { contacts ->
             Log.i("invites contacts", "contacts size: ${contacts.size}")
-            contactsViewModel._invites.value = contacts
+            //contactsViewModel._invites.value = contacts
         })
 
         firebaseClient.acceptContactAppState.observe(viewLifecycleOwner, acceptContactAppStateObserver)

@@ -7,8 +7,10 @@ import android.util.Patterns
 import androidx.lifecycle.*
 import androidx.lifecycle.Observer
 import com.bitpunchlab.android.foryoumessages.*
+import com.bitpunchlab.android.foryoumessages.database.ForYouDatabase
 import com.bitpunchlab.android.foryoumessages.models.Contact
 import com.bitpunchlab.android.foryoumessages.models.User
+import com.bitpunchlab.android.foryoumessages.models.UserEntity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -24,6 +26,7 @@ import java.util.regex.Pattern
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
+@OptIn(InternalCoroutinesApi::class)
 class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     var _currentUserObject = MutableLiveData<User>()
@@ -31,6 +34,10 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     var _currentUserContact = MutableLiveData<Contact>()
     val currentUserContact get() = _currentUserContact
+
+    var _currentUserEntity = MutableLiveData<UserEntity>()
+    val currentUserEntity get() = _currentUserEntity
+
     // these variables relates to login and create account interface's edittext fields
     // and the errors associated with them.
 
@@ -109,6 +116,8 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     var _userContacts = MutableLiveData<List<Contact>>()
     val userContacts get() = _userContacts
 
+    // the following variable is for local room database access
+    private lateinit var localDatabase: ForYouDatabase
 
     // whenever user is filling in one field, that field checks for its validity.
     // only if it is valid will the ready to create live data check if all fields are valid
@@ -218,7 +227,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     init {
         auth.addAuthStateListener(authStateListener)
         _allValid.value = arrayListOf(0,0,0,0,0)
-
+        localDatabase = ForYouDatabase.getInstance(activity.applicationContext)
 
         // we'll set allValid a 1 entry if the field is valid
         // we also check if other fields are also valid by checking if the allValid arraylist sum to 5
@@ -294,6 +303,17 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 readyLoginLiveData.value = false
             }
         }
+
+        // as soon as we got the current user object, we convert it to User Entity
+        // for the interfaces to retrieve contact list.
+        currentUserObject.observe(activity as LifecycleOwner, Observer { user ->
+            user?.let {
+                currentUserEntity.value = convertUserToUserEntity(user)
+                coroutineScope.launch {
+                    saveUserEntityInDatabase(currentUserEntity.value!!)
+                }
+            }
+        })
 
         requestContactAppState.observe(activity as LifecycleOwner, Observer { appState ->
             when (appState) {
@@ -870,11 +890,41 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         appInviterContact = currentUserContact.value
         deleteContactAppState.value = DeleteContactAppState.ASK_CONFIRMATION
     }
+
+    // the following code is used to convert user object retrieved from firestore to
+    // user entity to store in firebase.
+    private fun convertUserToUserEntity(user: User) : UserEntity? {
+        //if (user != null) {
+        val id = user.userID
+        val name = user.userName
+        val email = user.userEmail
+        val phone = user.userPhone
+        val contacts = parseContactsHashmap(user.contacts)
+        val requestedContacts = parseContactsHashmap(user.requestedContacts)
+        val acceptedContacts = parseContactsHashmap(user.acceptedContacts)
+        val invites = parseContactsHashmap(user.invites)
+        val rejectedContacts = parseContactsHashmap(user.rejectedContacts)
+        val deletedContacts = parseContactsHashmap(user.deletedContacts)
+
+        return UserEntity(userID = id, userName = name, userEmail = email, userPhone = phone,
+            contacts = contacts, requestedContacts = requestedContacts,
+            acceptedContacts = acceptedContacts, invites = invites,
+            rejectedContacts = rejectedContacts, deletedContacts = deletedContacts)
+        //}
+        //return null
+    }
+
+    private suspend fun saveUserEntityInDatabase(userEntity: UserEntity) {
+        withContext(Dispatchers.IO) {
+            localDatabase.userDAO.insertUser(userEntity)
+            Log.i("save entity in local database", "inserted user")
+        }
+    }
 }
 
 class FirebaseClientViewModelFactory(private val activity: Activity)
     : ViewModelProvider.Factory {
-    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(FirebaseClientViewModel::class.java)) {
             return FirebaseClientViewModel(activity) as T
         }

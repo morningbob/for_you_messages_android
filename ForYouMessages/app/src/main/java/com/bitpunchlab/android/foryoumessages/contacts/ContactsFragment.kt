@@ -41,15 +41,30 @@ class ContactsFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         setHasOptionsMenu(true)
+
+
         _binding = FragmentContactsBinding.inflate(inflater, container, false)
         contactsViewModel = ViewModelProvider(requireActivity())
             .get(ContactsViewModel::class.java)
 
+
         firebaseClient = ViewModelProvider(requireActivity(), FirebaseClientViewModelFactory(requireActivity()))
             .get(FirebaseClientViewModel::class.java)
 
+        // if the user object or the contact object is still null after retrieving from
+        // auth, we'll get it again here.
+        firebaseClient.getUserAndContactObject()
+        // we save the currentUserEntity in contactsVM, for the contact lists we need
+        contactsViewModel._currentUser.value = firebaseClient.currentUserEntity.value
         // we retrieve the user's contacts from the database
-        firebaseClient.retrieveContacts(ContactsList.USER_CONTACTS)
+        //firebaseClient.retrieveContacts(ContactsList.USER_CONTACTS)
+        // now we retrieve from the user entity's contacts field.
+        firebaseClient.currentUserEntity.observe(viewLifecycleOwner, Observer { currentUser ->
+            currentUser?.let {
+                // we store the user's contacts in contactsVM for persistence
+                contactsViewModel._contacts.value = currentUser.contacts
+            }
+        })
 
         contactsAdapter = ContactsAdapter(ContactOnClickListener { contact ->
             // here onclick should show the write message fragment
@@ -64,9 +79,7 @@ class ContactsFragment : Fragment() {
             contactsAdapter.notifyDataSetChanged()
         })
 
-        // if the user object or the contact object is still null after retrieving from
-        // auth, we'll get it again here.
-        firebaseClient.getUserAndContactObject()
+
 
         // here, when the contact is clicked, we present the options in an alert
         // for the user to choose.  Like delete, write message
@@ -96,7 +109,7 @@ class ContactsFragment : Fragment() {
         // we get the latest contact list from firestore and save it in contact view model
         // the adapter only pay attention to contact view model
         firebaseClient.userContacts.observe(viewLifecycleOwner, Observer { contacts ->
-            contactsViewModel.contacts.value = contacts
+            //contactsViewModel.contacts.value = contacts
         })
 
         firebaseClient.loginAppState.observe(viewLifecycleOwner, loginAppStateObserver)

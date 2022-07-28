@@ -6,6 +6,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
@@ -19,6 +20,7 @@ import com.bitpunchlab.android.foryoumessages.databinding.FragmentAcceptedContac
 import com.bitpunchlab.android.foryoumessages.databinding.FragmentContactsListBinding
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModelFactory
+import com.bitpunchlab.android.foryoumessages.models.Contact
 
 
 class ContactsListFragment : Fragment() {
@@ -28,7 +30,7 @@ class ContactsListFragment : Fragment() {
     private lateinit var firebaseClient : FirebaseClientViewModel
     private lateinit var contactsListAdapter: ContactsAdapter
     private lateinit var contactsViewModel: ContactsViewModel
-
+    private var contactTypeList = MutableLiveData<List<Contact>>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,10 +41,14 @@ class ContactsListFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
+
+
         _binding = FragmentContactsListBinding.inflate(inflater, container, false)
         firebaseClient = ViewModelProvider(requireActivity(), FirebaseClientViewModelFactory(requireActivity()))
             .get(FirebaseClientViewModel::class.java)
+        // if the user object or the contact object is still null after retrieving from
+        // auth, we'll get it again here.
+        firebaseClient.getUserAndContactObject()
         contactsViewModel = ViewModelProvider(requireActivity()).get(ContactsViewModel::class.java)
         contactsListAdapter = ContactsAdapter(ContactOnClickListener { contact ->
             contactsViewModel.onContactClicked(contact)
@@ -53,14 +59,20 @@ class ContactsListFragment : Fragment() {
             findNavController().popBackStack()
         }
         // clear previous result, that might be requested list, accepted list
-        firebaseClient.userContacts.value = null
-        firebaseClient.retrieveContacts(currentContactType!!)
+        //firebaseClient.userContacts.value = null
+        //firebaseClient.retrieveContacts(currentContactType!!)
+        // get the corresponding list from user entity
+        //firebaseClient.currentUserEntity.observe(viewLifecycleOwner, Observer { currentUser ->
+        //    contactsViewModel._currentTypeContactList.value =
+        //})
+        contactTypeList.value = contactsViewModel.contactsTypeHashmap[currentContactType]
+
         binding.textviewTitle.text = ContactsTypeTitleMap[currentContactType]
 
         binding.lifecycleOwner = viewLifecycleOwner
         binding.contactsListRecycler.adapter = contactsListAdapter
 
-        firebaseClient.userContacts.observe(viewLifecycleOwner, Observer { contacts ->
+        contactTypeList.observe(viewLifecycleOwner, Observer { contacts ->
             contactsListAdapter.submitList(contacts)
             contactsListAdapter.notifyDataSetChanged()
         })
