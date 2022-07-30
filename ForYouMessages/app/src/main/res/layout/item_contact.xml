@@ -7,7 +7,7 @@
     <data>
         <variable
             name="contact"
-            type="com.bitpunchlab.android.foryoumessages.models.Contact" />
+            type="com.bitpunchlab.android.foryoumessages.models.ContactEntity" />
         <variable
             name="clickListener"
             type="com.bitpunchlab.android.foryoumessages.contacts.ContactOnClickListener" />

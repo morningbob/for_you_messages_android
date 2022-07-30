@@ -7,9 +7,10 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bitpunchlab.android.foryoumessages.databinding.ItemContactBinding
 import com.bitpunchlab.android.foryoumessages.models.Contact
+import com.bitpunchlab.android.foryoumessages.models.ContactEntity
 import com.bitpunchlab.android.foryoumessages.models.User
 
-class ContactsAdapter(var clickListener: ContactOnClickListener) : ListAdapter<Contact, ContactViewHolder>(ContactDiffCallback()) {
+class ContactsAdapter(var clickListener: ContactOnClickListener) : ListAdapter<ContactEntity, ContactViewHolder>(ContactDiffCallback()) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactViewHolder {
         return ContactViewHolder.from(parent)
     }
@@ -23,7 +24,7 @@ class ContactsAdapter(var clickListener: ContactOnClickListener) : ListAdapter<C
 
 class ContactViewHolder(val binding: ItemContactBinding) : RecyclerView.ViewHolder(binding.root) {
 
-    fun bind(contact: Contact, onClickListener: ContactOnClickListener) {
+    fun bind(contact: ContactEntity, onClickListener: ContactOnClickListener) {
         binding.contact = contact
         binding.clickListener = onClickListener
         binding.executePendingBindings()
@@ -39,18 +40,18 @@ class ContactViewHolder(val binding: ItemContactBinding) : RecyclerView.ViewHold
     }
 }
 
-class ContactDiffCallback : DiffUtil.ItemCallback<Contact>() {
-    override fun areItemsTheSame(oldItem: Contact, newItem: Contact): Boolean {
+class ContactDiffCallback : DiffUtil.ItemCallback<ContactEntity>() {
+    override fun areItemsTheSame(oldItem: ContactEntity, newItem: ContactEntity): Boolean {
         return oldItem.contactEmail == newItem.contactEmail
     }
 
-    override fun areContentsTheSame(oldItem: Contact, newItem: Contact): Boolean {
+    override fun areContentsTheSame(oldItem: ContactEntity, newItem: ContactEntity): Boolean {
         return oldItem.contactPhone == newItem.contactPhone
     }
 
 }
 
-class ContactOnClickListener(val clickListener: (Contact) -> Unit) {
-    fun onClick(contact: Contact) = clickListener(contact)
+class ContactOnClickListener(val clickListener: (ContactEntity) -> Unit) {
+    fun onClick(contact: ContactEntity) = clickListener(contact)
 }
 

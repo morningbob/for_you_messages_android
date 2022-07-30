@@ -35,7 +35,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     var _currentUserContact = MutableLiveData<Contact>()
     val currentUserContact get() = _currentUserContact
 
-    var _currentUserEntity = MutableLiveData<UserEntity>()
+    var _currentUserEntity = MutableLiveData<UserEntity>(UserEntity())
     val currentUserEntity get() = _currentUserEntity
 
     // these variables relates to login and create account interface's edittext fields
@@ -117,7 +117,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     val userContacts get() = _userContacts
 
     // the following variable is for local room database access
-    private lateinit var localDatabase: ForYouDatabase
+    private var localDatabase: ForYouDatabase
 
     // whenever user is filling in one field, that field checks for its validity.
     // only if it is valid will the ready to create live data check if all fields are valid
@@ -311,6 +311,8 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 currentUserEntity.value = convertUserToUserEntity(user)
                 coroutineScope.launch {
                     saveUserEntityInDatabase(currentUserEntity.value!!)
+
+
                 }
             }
         })
@@ -571,6 +573,8 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
 
     fun logoutUser() {
         auth.signOut()
+        // clear user entity, so, clear all contacts
+        //_currentUserEntity.value = UserEntity()
         loginAppState.value = LoginAppState.LOGGED_OUT
     }
 

@@ -1,15 +1,17 @@
 package com.bitpunchlab.android.foryoumessages.contacts
 
+import android.app.Activity
 import android.util.Log
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.bitpunchlab.android.foryoumessages.ContactsList
-import com.bitpunchlab.android.foryoumessages.models.Contact
-import com.bitpunchlab.android.foryoumessages.models.ContactEntity
-import com.bitpunchlab.android.foryoumessages.models.User
-import com.bitpunchlab.android.foryoumessages.models.UserEntity
+import com.bitpunchlab.android.foryoumessages.database.ForYouDatabase
+import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
+import com.bitpunchlab.android.foryoumessages.models.*
 
-class ContactsViewModel : ViewModel() {
+class ContactsViewModel(private val localDatabase: ForYouDatabase, private val userID: String) : ViewModel() {
 
     var _contacts = MutableLiveData<List<Contact>>()
     val contacts get() = _contacts
@@ -17,24 +19,17 @@ class ContactsViewModel : ViewModel() {
     var _invites = MutableLiveData<List<Contact>>()
     val invites get() = _invites
 
-    var _currentUser = MutableLiveData<UserEntity>(UserEntity())
-    val currentUser get() = _currentUser
+    //var user = localDatabase.userDAO.getUser(userID) //MutableLiveData<UserEntity>()
+    lateinit var user : LiveData<UserWithContactListsAndContacts>
 
     var _currentTypeContactList = MutableLiveData<List<Contact>>()
     val currentTypeContactList get() = _currentTypeContactList
 
-    var _chosenContact = MutableLiveData<Contact>()
+    var _chosenContact = MutableLiveData<ContactEntity>()
     val chosenContact get() = _chosenContact
 
-    val contactsTypeHashmap = HashMap<ContactsList, List<Contact>>().apply {
-        this[ContactsList.REQUESTED_CONTACT] = currentUser.value!!.requestedContacts
-        this[ContactsList.ACCEPTED_CONTACT] = currentUser.value!!.acceptedContacts
-        this[ContactsList.REJECTED_CONTACT] = currentUser.value!!.rejectedContacts
-        this[ContactsList.DELETED_CONTACT] = currentUser.value!!.deletedContacts
-    }
 
-
-    fun onContactClicked(contact: Contact) {
+    fun onContactClicked(contact: ContactEntity) {
         _chosenContact.value = contact
     }
 
@@ -59,5 +54,20 @@ class ContactsViewModel : ViewModel() {
             //}
             _invites.value = tempList
         }
+    }
+
+    fun getUserLocalDatabase(id: String) {
+        user = localDatabase.userDAO.getUserWithContactListsAndContacts(id)
+    }
+}
+
+class ContactsViewModelFactory(private val localDatabase: ForYouDatabase,
+    private val userID: String)
+    : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(ContactsViewModel::class.java)) {
+            return ContactsViewModel(localDatabase, userID) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

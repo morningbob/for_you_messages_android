@@ -8,17 +8,26 @@ import android.util.Log
 import android.view.*
 import android.widget.EditText
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.NavigationUI
 import com.bitpunchlab.android.foryoumessages.*
+import com.bitpunchlab.android.foryoumessages.database.ForYouDatabase
 import com.bitpunchlab.android.foryoumessages.databinding.FragmentContactsBinding
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModelFactory
 import com.bitpunchlab.android.foryoumessages.models.Contact
 import com.bitpunchlab.android.foryoumessages.models.ContactEntity
+import com.bitpunchlab.android.foryoumessages.models.ContactListWithContacts
+import com.bitpunchlab.android.foryoumessages.models.UserEntity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.InternalCoroutinesApi
+import kotlinx.coroutines.launch
 
 
 class ContactsFragment : Fragment() {
@@ -28,58 +37,58 @@ class ContactsFragment : Fragment() {
     private lateinit var contactsAdapter: ContactsAdapter
     private lateinit var contactsViewModel: ContactsViewModel
     private lateinit var firebaseClient: FirebaseClientViewModel
-    //private var contact: Contact? = null
-    private var contactToBeDeleted: Contact? = null
+    private var contactToBeDeleted: ContactEntity? = null
+    private lateinit var localDatabase: ForYouDatabase
+    private var contacts = MutableLiveData<ContactListWithContacts>()
+    private var userToBeUpdated = UserEntity()
+    private lateinit var coroutineScope: CoroutineScope
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
     }
 
+    @OptIn(InternalCoroutinesApi::class)
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         setHasOptionsMenu(true)
-
-
         _binding = FragmentContactsBinding.inflate(inflater, container, false)
-        contactsViewModel = ViewModelProvider(requireActivity())
-            .get(ContactsViewModel::class.java)
+        binding.lifecycleOwner = viewLifecycleOwner
 
-
-        firebaseClient = ViewModelProvider(requireActivity(), FirebaseClientViewModelFactory(requireActivity()))
-            .get(FirebaseClientViewModel::class.java)
-
-        // if the user object or the contact object is still null after retrieving from
-        // auth, we'll get it again here.
-        firebaseClient.getUserAndContactObject()
-        // we save the currentUserEntity in contactsVM, for the contact lists we need
-        contactsViewModel._currentUser.value = firebaseClient.currentUserEntity.value
-        // we retrieve the user's contacts from the database
-        //firebaseClient.retrieveContacts(ContactsList.USER_CONTACTS)
-        // now we retrieve from the user entity's contacts field.
-        firebaseClient.currentUserEntity.observe(viewLifecycleOwner, Observer { currentUser ->
-            currentUser?.let {
-                // we store the user's contacts in contactsVM for persistence
-                contactsViewModel._contacts.value = currentUser.contacts
-            }
-        })
-
+        coroutineScope = CoroutineScope(Dispatchers.IO)
         contactsAdapter = ContactsAdapter(ContactOnClickListener { contact ->
             // here onclick should show the write message fragment
             contactsViewModel.onContactClicked(contact)
         })
-
-        binding.lifecycleOwner = viewLifecycleOwner
         binding.contactsRecycler.adapter = contactsAdapter
+        localDatabase = ForYouDatabase.getInstance(requireContext())
+        firebaseClient = ViewModelProvider(requireActivity(), FirebaseClientViewModelFactory(requireActivity()))
+            .get(FirebaseClientViewModel::class.java)
+        // if the user object or the contact object is still null after retrieving from
+        // auth, we'll get it again here.
+        firebaseClient.getUserAndContactObject()
 
-        contactsViewModel.contacts.observe(viewLifecycleOwner, Observer { contacts ->
-            contactsAdapter.submitList(contacts)
-            contactsAdapter.notifyDataSetChanged()
+        contactsViewModel = ViewModelProvider(requireActivity(), ContactsViewModelFactory(localDatabase,
+            firebaseClient.currentUserEntity.value!!.userID))
+            .get(ContactsViewModel::class.java)
+
+        // as the contactsVM will get the user entity object from the local database,
+        // we need to observe whenever the it changes, to get our contacts
+        contactsViewModel.user.observe(viewLifecycleOwner, Observer { currentUser ->
+            currentUser?.let {
+                contacts.value = currentUser.contactLists.find {
+                    it.contactList.listName == "contacts"
+                }
+
+            }
         })
 
-
+        contacts.observe(viewLifecycleOwner, Observer { contacts ->
+            contactsAdapter.submitList(contacts.contacts)
+            contactsAdapter.notifyDataSetChanged()
+        })
 
         // here, when the contact is clicked, we present the options in an alert
         // for the user to choose.  Like delete, write message
@@ -300,7 +309,7 @@ class ContactsFragment : Fragment() {
         notAlert.show()
     }
 
-    private fun confirmDeleteAlert(contact: Contact) {
+    private fun confirmDeleteAlert(contact: ContactEntity) {
         val confirmAlert = AlertDialog.Builder(requireContext())
         confirmAlert.setCancelable(false)
         confirmAlert.setTitle("Confirm Delete")
@@ -308,8 +317,11 @@ class ContactsFragment : Fragment() {
 
         confirmAlert.setPositiveButton(getString(R.string.confirm),
             DialogInterface.OnClickListener { dialog, button ->
-                //firebaseClient.requestContactAppState.value = RequestContactAppState.CONFIRMED_REQUEST
                 firebaseClient.deleteContactAppState.value = DeleteContactAppState.CONFIRMED_DELETION
+                // here, we modify the user entity object, delete the contact and save in local
+                // database
+                //contactsViewModel.removeContact(contact)
+
             })
 
         confirmAlert.setNegativeButton(getString(R.string.cancel),
@@ -331,5 +343,30 @@ class ContactsFragment : Fragment() {
 
             }
         }
+    }
+
+    private fun updateUserInDatabase(contactToRemove: ContactEntity) {
+        var originalContactList = contactsViewModel.user.value!!.contactLists.find {
+            it.contactList.listName == "contacts"
+        }!!
+        if (originalContactList.contacts.isNotEmpty()) {
+            var contactsUpdated = originalContactList.contacts.toMutableList()
+            contactsUpdated.remove(contactToRemove)
+
+            // so we are not doing it this way, the contacts lists are not the fields of
+            // user entity anymore.  we can just modify the ContactListWithContacts
+            // maybe, we can just modify the ContactListWithContacts, and save only that object
+            originalContactList.contacts = contactsUpdated
+
+            //userToBeUpdated = contactsViewModel.user.value!!.copy()
+            //userToBeUpdated.contacts = contactsUpdated
+
+            coroutineScope.launch {
+                localDatabase.userDAO.insertUser(userToBeUpdated)
+                Log.i("update user", "user saved in database")
+
+            }
+        }
+
     }
 }

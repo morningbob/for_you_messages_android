@@ -16,11 +16,10 @@ data class UserEntity (
     var userName: String = "",
     var userPhone: String = "",
     var userEmail: String = "",
-    var contacts : List<Contact> = emptyList(),
-    var requestedContacts : List<Contact> = emptyList(),
-    var acceptedContacts: List<Contact> = emptyList(),
-    var invites : List<Contact> = emptyList(),
-    var rejectedContacts : List<Contact> = emptyList(),
-    var deletedContacts : List<Contact> = emptyList()
-
+    //var contacts : List<ContactEntity> = emptyList(),
+    //var requestedContacts : List<ContactEntity> = emptyList(),
+    //var acceptedContacts: List<Contact> = emptyList(),
+    //var invites : List<Contact> = emptyList(),
+    //var rejectedContacts : List<Contact> = emptyList(),
+    //var deletedContacts : List<Contact> = emptyList()
     )

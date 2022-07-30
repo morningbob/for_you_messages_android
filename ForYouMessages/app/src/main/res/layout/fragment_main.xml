@@ -4,6 +4,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <data>
+        <variable
+            name="user"
+            type="com.bitpunchlab.android.foryoumessages.models.UserEntity" />
+    </data>
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -28,6 +34,19 @@
             tools:srcCompat="@drawable/home" />
 
         <TextView
+            android:id="@+id/textview_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:layout_marginLeft="@dimen/title_content_margin"
+            android:layout_marginRight="@dimen/title_content_margin"
+            android:text="@{user.userName}"
+            android:textSize="@dimen/normal_text_size"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/art_home"/>
+
+        <TextView
             android:id="@+id/textview_intro"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -38,7 +57,7 @@
             android:textSize="@dimen/normal_text_size"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/art_home" />
+            app:layout_constraintTop_toBottomOf="@id/textview_name" />
 
         <Button
             android:id="@+id/button_create_keys"

@@ -8,6 +8,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.get
@@ -16,10 +17,13 @@ import com.bitpunchlab.android.foryoumessages.ContactsList
 import com.bitpunchlab.android.foryoumessages.R
 import com.bitpunchlab.android.foryoumessages.RejectContactAppState
 import com.bitpunchlab.android.foryoumessages.contacts.ContactsViewModel
+import com.bitpunchlab.android.foryoumessages.contacts.ContactsViewModelFactory
+import com.bitpunchlab.android.foryoumessages.database.ForYouDatabase
 import com.bitpunchlab.android.foryoumessages.databinding.FragmentInvitesBinding
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModelFactory
 import com.bitpunchlab.android.foryoumessages.models.Contact
+import kotlinx.coroutines.InternalCoroutinesApi
 
 
 class InvitesFragment : Fragment() {
@@ -30,12 +34,15 @@ class InvitesFragment : Fragment() {
     private lateinit var contactsViewModel: ContactsViewModel
     private lateinit var firebaseClient: FirebaseClientViewModel
     private var targetContact : Contact? = null
+    private lateinit var localDatabase: ForYouDatabase
+    private var invites = MutableLiveData<List<Contact>>(emptyList())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
     }
 
+    @OptIn(InternalCoroutinesApi::class)
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -43,25 +50,21 @@ class InvitesFragment : Fragment() {
 
         _binding = FragmentInvitesBinding.inflate(inflater, container, false)
         binding.lifecycleOwner = viewLifecycleOwner
+        localDatabase = ForYouDatabase.getInstance(requireContext())
         firebaseClient = ViewModelProvider(requireActivity(), FirebaseClientViewModelFactory(requireActivity()))
             .get(FirebaseClientViewModel::class.java)
         // if the user object or the contact object is still null after retrieving from
         // auth, we'll get it again here.
         firebaseClient.getUserAndContactObject()
-        // the invites list from firestore just list the emails
-        // we need to get the contact object for the user
-        // that needs too many queries.  I'm going to change
-        // all lists to use contact objects instead of emails
 
-        contactsViewModel = ViewModelProvider(requireActivity())
+        contactsViewModel = ViewModelProvider(requireActivity(), ContactsViewModelFactory(localDatabase,
+            firebaseClient.currentUserEntity.value!!.userID))
             .get(ContactsViewModel::class.java)
 
-        // we retrieve the user's contacts from the database
-        //firebaseClient.retrieveContacts(ContactsList.INVITES)
-        // we now retrieve from the user entity object
-        firebaseClient.currentUserEntity.observe(viewLifecycleOwner, Observer { currentUser ->
+        contactsViewModel.user.observe(viewLifecycleOwner, Observer { currentUser ->
             currentUser?.let {
-                contactsViewModel.invites.value = currentUser.invites
+                //contactsViewModel.invites.value = currentUser.invites
+                invites.value = currentUser.invites
             }
         })
 
@@ -78,7 +81,7 @@ class InvitesFragment : Fragment() {
         })
         binding.invitesRecycler.adapter = invitesAdapter
 
-        contactsViewModel.invites.observe(viewLifecycleOwner, Observer { inviteList ->
+        invites.observe(viewLifecycleOwner, Observer { inviteList ->
             inviteList?.let {
                 invitesAdapter.submitList(inviteList)
                 invitesAdapter.notifyDataSetChanged()
@@ -87,10 +90,10 @@ class InvitesFragment : Fragment() {
 
         // we get the latest contact list from firestore and save it in contact view model
         // the adapter only pay attention to contact view model
-        firebaseClient.userContacts.observe(viewLifecycleOwner, Observer { contacts ->
-            Log.i("invites contacts", "contacts size: ${contacts.size}")
+        //firebaseClient.userContacts.observe(viewLifecycleOwner, Observer { contacts ->
+        //    Log.i("invites contacts", "contacts size: ${contacts.size}")
             //contactsViewModel._invites.value = contacts
-        })
+        //})
 
         firebaseClient.acceptContactAppState.observe(viewLifecycleOwner, acceptContactAppStateObserver)
         firebaseClient.rejectContactAppState.observe(viewLifecycleOwner, rejectContactAppStateObserver)

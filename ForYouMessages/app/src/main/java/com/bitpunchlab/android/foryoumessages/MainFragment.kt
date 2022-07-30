@@ -11,9 +11,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.NavigationUI
-import com.bitpunchlab.android.foryoumessages.databinding.FragmentMainBinding
+import com.bitpunchlab.android.foryoumessages.contacts.ContactsViewModel
+import com.bitpunchlab.android.foryoumessages.contacts.ContactsViewModelFactory
+import com.bitpunchlab.android.foryoumessages.database.ForYouDatabase
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModelFactory
+import com.bitpunchlab.android.foryoumessages.databinding.FragmentMainBinding
+import kotlinx.coroutines.InternalCoroutinesApi
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
@@ -27,7 +31,10 @@ class MainFragment : Fragment() {
     private var _binding: FragmentMainBinding? = null
     private val binding get() = _binding!!
     private lateinit var firebaseClient: FirebaseClientViewModel
+    private lateinit var contactsViewModel: ContactsViewModel
+    private lateinit var localDatabase: ForYouDatabase
 
+    @OptIn(InternalCoroutinesApi::class)
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -38,6 +45,12 @@ class MainFragment : Fragment() {
         _binding = FragmentMainBinding.inflate(inflater, container, false)
         firebaseClient = ViewModelProvider(requireActivity(), FirebaseClientViewModelFactory(requireActivity()))
             .get(FirebaseClientViewModel::class.java)
+        localDatabase = ForYouDatabase.getInstance(requireContext())
+        contactsViewModel = ViewModelProvider(requireActivity(), ContactsViewModelFactory(localDatabase,
+            firebaseClient.currentUserEntity.value!!.userID))
+            .get(ContactsViewModel::class.java)
+        //binding.lifeCyclerOwner = viewLifecycleOwner
+        binding.user = firebaseClient.currentUserEntity.value
 
         firebaseClient.loginAppState.observe(viewLifecycleOwner, loginAppStateObserver)
 
@@ -51,6 +64,14 @@ class MainFragment : Fragment() {
         binding.buttonLogout.setOnClickListener {
             firebaseClient.logoutUser()
         }
+
+        // here, will be triggered whenever the app login the user
+        // we notice contactsVM to load the correct user
+        firebaseClient.currentUserEntity.observe(viewLifecycleOwner, Observer { currentUser ->
+            currentUser?.let {
+                contactsViewModel.getUserLocalDatabase(currentUser.userID)
+            }
+        })
 
         return binding.root
 
@@ -137,6 +158,10 @@ class MainFragment : Fragment() {
                 // return to login page, or pop off self
                 findNavController().popBackStack()
                 Log.i("main, app state", "logged out once")
+            }
+            LoginAppState.LOGGED_IN -> {
+                // we display the user's name in home page
+                binding
             }
             else -> {
 
