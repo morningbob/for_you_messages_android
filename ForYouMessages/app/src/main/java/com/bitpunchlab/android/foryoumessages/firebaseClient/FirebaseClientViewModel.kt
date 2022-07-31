@@ -7,10 +7,10 @@ import android.util.Patterns
 import androidx.lifecycle.*
 import androidx.lifecycle.Observer
 import com.bitpunchlab.android.foryoumessages.*
+import com.bitpunchlab.android.foryoumessages.contacts.ContactsViewModel
+import com.bitpunchlab.android.foryoumessages.contacts.ContactsViewModelFactory
 import com.bitpunchlab.android.foryoumessages.database.ForYouDatabase
-import com.bitpunchlab.android.foryoumessages.models.Contact
-import com.bitpunchlab.android.foryoumessages.models.User
-import com.bitpunchlab.android.foryoumessages.models.UserEntity
+import com.bitpunchlab.android.foryoumessages.models.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -116,8 +116,11 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
     var _userContacts = MutableLiveData<List<Contact>>()
     val userContacts get() = _userContacts
 
+    //var existingUser : LiveData<UserWithContactListsAndContacts>
+
     // the following variable is for local room database access
     private var localDatabase: ForYouDatabase
+    //private lateinit var contactsViewModel: ContactsViewModel
 
     // whenever user is filling in one field, that field checks for its validity.
     // only if it is valid will the ready to create live data check if all fields are valid
@@ -228,6 +231,9 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         auth.addAuthStateListener(authStateListener)
         _allValid.value = arrayListOf(0,0,0,0,0)
         localDatabase = ForYouDatabase.getInstance(activity.applicationContext)
+        //contactsViewModel = ViewModelProvider(activity as ViewModelStore,
+        //    ContactsViewModelFactory(localDatabase, "XX"))
+        //    .get(ContactsViewModel::class.java)
 
         // we'll set allValid a 1 entry if the field is valid
         // we also check if other fields are also valid by checking if the allValid arraylist sum to 5
@@ -311,11 +317,14 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 currentUserEntity.value = convertUserToUserEntity(user)
                 coroutineScope.launch {
                     saveUserEntityInDatabase(currentUserEntity.value!!)
-
+                    //Log.i("after save user", localDatabase.userDAO.getUser(user.userID).value)
+                    createContactCrossRefs(user)
 
                 }
             }
         })
+
+
 
         requestContactAppState.observe(activity as LifecycleOwner, Observer { appState ->
             when (appState) {
@@ -385,6 +394,8 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 else -> 0
             }
         })
+
+
     }
 
     private fun isEmailValid(email: String) : Boolean {
@@ -878,23 +889,32 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         return contacts
     }
 
-    fun acceptInvite(chosenContact: Contact) {
-        appInviterContact = chosenContact
+    fun acceptInvite(chosenContact: ContactEntity) {
+
+        appInviterContact = contactEntityToContact(chosenContact)
         acceptContactAppState.value = AcceptContactAppState.ASK_CONFIRMATION
     }
 
-    fun rejectInvite(chosenContact: Contact) {
-        appInviterContact = chosenContact
+    fun rejectInvite(chosenContact: ContactEntity) {
+        appInviterContact = contactEntityToContact(chosenContact)
         rejectContactAppState.value = RejectContactAppState.ASK_CONFIRMATION
     }
 
-    fun deleteContact(chosenContact: Contact) {
-        appInviteeContact = chosenContact
+    fun deleteContact(chosenContact: ContactEntity) {
+        appInviteeContact = contactEntityToContact(chosenContact)
         //Log.i("delete contact", "current user contact ${currentUserContact.value.toString()}")
         appInviterContact = currentUserContact.value
         deleteContactAppState.value = DeleteContactAppState.ASK_CONFIRMATION
     }
 
+    private fun contactEntityToContact(contactEntity: ContactEntity) : Contact {
+        return Contact(contactEntity.contactEmail, contactEntity.contactName,
+            contactEntity.contactPhone)
+    }
+
+    private fun contactToContactEntity(contact: Contact) : ContactEntity {
+        return ContactEntity(contact.contactEmail, contact.contactName, contact.contactPhone)
+    }
     // the following code is used to convert user object retrieved from firestore to
     // user entity to store in firebase.
     private fun convertUserToUserEntity(user: User) : UserEntity? {
@@ -903,6 +923,50 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         val name = user.userName
         val email = user.userEmail
         val phone = user.userPhone
+
+
+        // create contact list objects when first created the user object
+        // we should query if the user entity object already has the contact list of the name,
+        // and add to it.  get the contact list id
+        // create cross ref object for every contact found, and save the contacts object
+
+
+        //createContactCrossRefs(user, contacts, invites, requestedContacts, acceptedContacts,
+        //    rejectedContacts, deletedContacts
+        //)
+
+        return UserEntity(userID = id, userName = name, userEmail = email, userPhone = phone)
+            //contacts = contacts, requestedContacts = requestedContacts,
+            //acceptedContacts = acceptedContacts, invites = invites,
+            //rejectedContacts = rejectedContacts, deletedContacts = deletedContacts)
+        //}
+        //return null
+    }
+
+    // when we first save the user in the local database, we create the corresponding contact lists
+    //
+    private suspend fun saveUserEntityInDatabase(userEntity: UserEntity) {
+        withContext(Dispatchers.IO) {
+            localDatabase.userDAO.insertUser(userEntity)
+            Log.i("save entity in local database", "inserted user")
+        }
+    }
+
+    private suspend fun saveContactEntityInDatabase(contacts: List<ContactEntity>) {
+        withContext(Dispatchers.IO) {
+            // save all contacts
+            localDatabase.userDAO.insertContacts(*contacts.toTypedArray())
+        }
+    }
+
+    private fun getUserLocalDatabase(id: String) : LiveData<UserWithContactListsAndContacts> {
+        return localDatabase.userDAO.getUserWithContactListsAndContacts(id)
+    }
+
+    private fun createContactCrossRefs(user: User) {
+        // create all cross ref objects
+        // find
+        var existingUser = getUserFirebase(user.userID)
         val contacts = parseContactsHashmap(user.contacts)
         val requestedContacts = parseContactsHashmap(user.requestedContacts)
         val acceptedContacts = parseContactsHashmap(user.acceptedContacts)
@@ -910,19 +974,83 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         val rejectedContacts = parseContactsHashmap(user.rejectedContacts)
         val deletedContacts = parseContactsHashmap(user.deletedContacts)
 
-        return UserEntity(userID = id, userName = name, userEmail = email, userPhone = phone,
-            contacts = contacts, requestedContacts = requestedContacts,
-            acceptedContacts = acceptedContacts, invites = invites,
-            rejectedContacts = rejectedContacts, deletedContacts = deletedContacts)
-        //}
-        //return null
+        // save all contacts
+        val allContacts = contacts + requestedContacts + acceptedContacts + invites +
+                rejectedContacts + deletedContacts
+        //saveContactEntityInDatabase(allContacts)
+        val allContactEntities = allContacts.map { contact ->
+            contactToContactEntity(contact)
+        }
+        coroutineScope.launch {
+            saveContactEntityInDatabase(allContactEntities)
+        }
+
+        // if user is not null, that means the contact lists are already created
+        val allCrossRef = ArrayList<ContactListContactCrossRef>()
+        if (existingUser == null || existingUser!!.contactLists.isEmpty()) {
+            // create contact lists for new user
+            val contactsList = ContactList(userCreatorId = user.userID, listName = "contacts")
+            val invitesList = ContactList(userCreatorId = user.userID, listName = "invites")
+            val requestedContactsList = ContactList(userCreatorId = user.userID, listName = "requestedContacts")
+            val acceptedContactsList = ContactList(userCreatorId = user.userID, listName = "acceptedContacts")
+            val rejectedContactsList = ContactList(userCreatorId = user.userID, listName = "rejectedContacts")
+            val deletedContactsList = ContactList(userCreatorId = user.userID, listName = "deletedContacts")
+            //existingUser.observe(activity as LifecycleOwner, Observer {
+
+            //})
+            coroutineScope.launch {
+                localDatabase.userDAO.insertContactList(contactsList, invitesList, requestedContactsList,
+                    acceptedContactsList, rejectedContactsList, deletedContactsList)
+                existingUser = getUserFirebase(user.userID)
+                //existingUser.observe(activity as LifecycleOwner, Observer {
+                //val userEntity = getUserLocalDatabase(user.userID)
+                //Log.i("userEntity", localDatabase.userDAO.getUser(user.userID).value!!.userName)
+                //})
+                Log.i("existing user", existingUser.user.userName)
+                allCrossRef.addAll(createEachCrossRefsExistingUser(existingUser!!.contactLists, contacts, "contacts"))
+                allCrossRef.addAll(createEachCrossRefsExistingUser(existingUser!!.contactLists, invites, "invites"))
+                allCrossRef.addAll(createEachCrossRefsExistingUser(existingUser!!.contactLists, requestedContacts, "requestedContacts"))
+                allCrossRef.addAll(createEachCrossRefsExistingUser(existingUser!!.contactLists, acceptedContacts, "acceptedContacts"))
+                allCrossRef.addAll(createEachCrossRefsExistingUser(existingUser!!.contactLists, rejectedContacts, "rejectedContacts"))
+                allCrossRef.addAll(createEachCrossRefsExistingUser(existingUser!!.contactLists, deletedContacts, "deletedContacts"))
+                localDatabase.userDAO.insertContactListContactCrossRefs(*allCrossRef.toTypedArray())
+            }
+        } else {
+        Log.i("existing user", "is not null")
+            Log.i("request contacts - firebase client", "size: ${requestedContacts.size}")
+        allCrossRef.addAll(createEachCrossRefsExistingUser(existingUser!!.contactLists, contacts, "contacts"))
+        allCrossRef.addAll(createEachCrossRefsExistingUser(existingUser!!.contactLists, invites, "invites"))
+        allCrossRef.addAll(createEachCrossRefsExistingUser(existingUser!!.contactLists, requestedContacts, "requestedContacts"))
+        allCrossRef.addAll(createEachCrossRefsExistingUser(existingUser!!.contactLists, acceptedContacts, "acceptedContacts"))
+        allCrossRef.addAll(createEachCrossRefsExistingUser(existingUser!!.contactLists, rejectedContacts, "rejectedContacts"))
+        allCrossRef.addAll(createEachCrossRefsExistingUser(existingUser!!.contactLists, deletedContacts, "deletedContacts"))
+        }
+        localDatabase.userDAO.insertContactListContactCrossRefs(*allCrossRef.toTypedArray())
+
     }
 
-    private suspend fun saveUserEntityInDatabase(userEntity: UserEntity) {
-        withContext(Dispatchers.IO) {
-            localDatabase.userDAO.insertUser(userEntity)
-            Log.i("save entity in local database", "inserted user")
+    private fun createEachCrossRefsExistingUser(contactLists: List<ContactListWithContacts>, contacts: List<Contact>,
+        contactListType: String) : List<ContactListContactCrossRef> {
+        var originalContacts = contactLists.find {
+            it.contactList.listName == contactListType
+        }!!
+        val targetIDContacts = originalContacts.contactList.listId
+        val contactsEntities = contacts.map { contact ->
+            contactToContactEntity(contact)
         }
+
+        return contactsEntities.map { contactEntity ->
+            Log.i("create cross ref", contactEntity.contactEmail)
+            ContactListContactCrossRef(listId = targetIDContacts, contactEmail = contactEntity.contactEmail)
+        }
+    }
+
+    private fun getUserWithContactListsAndContacts(userID: String) : LiveData<UserWithContactListsAndContacts> {
+        return localDatabase.userDAO.getUserWithContactListsAndContacts(userID)
+    }
+
+    private fun getUserFirebase(userID: String) : UserWithContactListsAndContacts {
+        return localDatabase.userDAO.getUserFirebase(userID)
     }
 }
 

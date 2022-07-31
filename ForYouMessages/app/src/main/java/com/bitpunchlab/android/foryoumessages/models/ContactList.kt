@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity
 data class ContactList(
-    @PrimaryKey(autoGenerate = true) val listId: Long,
+    @PrimaryKey(autoGenerate = true) var listId: Long = 0L,
     val userCreatorId: String,
     val listName: String
 )

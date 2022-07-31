@@ -1,10 +1,8 @@
 package com.bitpunchlab.android.foryoumessages.models
 
-import androidx.room.Embedded
-import androidx.room.Entity
-import androidx.room.Junction
-import androidx.room.Relation
+import androidx.room.*
 
+//@SuppressWarnings(RoomWarnings.PRIMARY_KEY_FROM_EMBEDDED_IS_DROPPED)
 @Entity
 data class ContactListWithContacts(
     @Embedded val contactList: ContactList,

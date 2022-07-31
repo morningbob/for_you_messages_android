@@ -35,7 +35,7 @@ class ContactFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var firebaseClient: FirebaseClientViewModel
     private lateinit var contactsViewModel: ContactsViewModel
-    private var contact : Contact? = null
+    private var contact : ContactEntity? = null
     private lateinit var coroutineScope: CoroutineScope
     private lateinit var localDatabase: ForYouDatabase
     private var userToBeUpdated = UserEntity()
@@ -59,11 +59,11 @@ class ContactFragment : Fragment() {
             .get(ContactsViewModel::class.java)
 
         coroutineScope = CoroutineScope(Dispatchers.IO)
-        val contactEntity = requireArguments().getParcelable<ContactEntity>("contact")
-
-        contact = Contact(name = contactEntity!!.contactName,
-            email = contactEntity!!.contactEmail,
-            phone = contactEntity!!.contactPhone)
+        //val contactEntity = requireArguments().getParcelable<ContactEntity>("contact")
+        contact = requireArguments().getParcelable<ContactEntity>("contact")
+        //contact = Contact(name = contactEntity!!.contactName,
+        //    email = contactEntity!!.contactEmail,
+        //    phone = contactEntity!!.contactPhone)
 
         binding.lifecycleOwner = viewLifecycleOwner
         binding.contact = contact
@@ -117,7 +117,8 @@ class ContactFragment : Fragment() {
         deleteAlert.show()
     }
 
-    private fun updateUserInDatabase(contactToRemove: Contact) {
+    private fun updateUserInDatabase(contactToRemove: ContactEntity) {
+        /*
         if (contactsViewModel.user.value!!.contacts.isNotEmpty()) {
             var contactsUpdated = contactsViewModel.user.value!!.contacts.toMutableList()
             contactsUpdated.remove(contactToRemove)
@@ -131,6 +132,30 @@ class ContactFragment : Fragment() {
                 // then, we pull from the local database, not remove contact manually
                 // this is because we need to reflect the changes in the interface
                 contactsViewModel.getUserLocalDatabase(firebaseClient.currentUserEntity.value!!.userID)
+            }
+        }
+
+         */
+        var originalContactList = contactsViewModel.user.value!!.contactLists.find {
+            it.contactList.listName == "contacts"
+        }!!
+        if (originalContactList.contacts.isNotEmpty()) {
+            var contactsUpdated = originalContactList.contacts.toMutableList()
+            contactsUpdated.remove(contactToRemove)
+
+            // so we are not doing it this way, the contacts lists are not the fields of
+            // user entity anymore.  we can just modify the ContactListWithContacts
+            // maybe, we can just modify the ContactListWithContacts, and save only that object
+            originalContactList.contacts = contactsUpdated
+            // now save it to database
+
+            //userToBeUpdated = contactsViewModel.user.value!!.copy()
+            //userToBeUpdated.contacts = contactsUpdated
+
+            coroutineScope.launch {
+                //localDatabase.userDAO.insertUser(userToBeUpdated)
+                //Log.i("update user", "user saved in database")
+
             }
         }
 

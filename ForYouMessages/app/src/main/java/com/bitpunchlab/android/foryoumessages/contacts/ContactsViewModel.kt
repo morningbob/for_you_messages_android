@@ -21,6 +21,7 @@ class ContactsViewModel(private val localDatabase: ForYouDatabase, private val u
 
     //var user = localDatabase.userDAO.getUser(userID) //MutableLiveData<UserEntity>()
     lateinit var user : LiveData<UserWithContactListsAndContacts>
+    //lateinit var existingUser : LiveData<UserWithContactListsAndContacts>
 
     var _currentTypeContactList = MutableLiveData<List<Contact>>()
     val currentTypeContactList get() = _currentTypeContactList

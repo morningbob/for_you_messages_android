@@ -11,6 +11,7 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.bitpunchlab.android.foryoumessages.ContactsList
+import com.bitpunchlab.android.foryoumessages.ContactsTypeNameString
 import com.bitpunchlab.android.foryoumessages.ContactsTypeTitleMap
 import com.bitpunchlab.android.foryoumessages.R
 import com.bitpunchlab.android.foryoumessages.contacts.ContactOnClickListener
@@ -23,6 +24,7 @@ import com.bitpunchlab.android.foryoumessages.databinding.FragmentContactsListBi
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModelFactory
 import com.bitpunchlab.android.foryoumessages.models.Contact
+import com.bitpunchlab.android.foryoumessages.models.ContactEntity
 import kotlinx.coroutines.InternalCoroutinesApi
 
 
@@ -33,7 +35,7 @@ class ContactsListFragment : Fragment() {
     private lateinit var firebaseClient : FirebaseClientViewModel
     private lateinit var contactsListAdapter: ContactsAdapter
     private lateinit var contactsViewModel: ContactsViewModel
-    private var contactTypeList = MutableLiveData<List<Contact>>()
+    private var contactTypeList = MutableLiveData<List<ContactEntity>>()
     private lateinit var localDatabase: ForYouDatabase
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,6 +67,15 @@ class ContactsListFragment : Fragment() {
             findNavController().popBackStack()
         }
 
+        contactsViewModel.user.observe(viewLifecycleOwner, Observer { currentUser ->
+            currentUser?.let {
+                contactTypeList.value = currentUser.contactLists.find {
+                    it.contactList.listName == ContactsTypeNameString[currentContactType]
+                }?.contacts
+                Log.i("requested contacts", "size ${contactTypeList.value!!.size}")
+            }
+        })
+        /*
         // config current contact list according to contact type
         contactsViewModel.user.observe(viewLifecycleOwner, Observer { currentUser ->
             currentUser?.let {
@@ -77,6 +88,8 @@ class ContactsListFragment : Fragment() {
                 contactTypeList.value = contactsTypeHashmap[currentContactType]
             }
         })
+
+         */
 
         binding.textviewTitle.text = ContactsTypeTitleMap[currentContactType]
 

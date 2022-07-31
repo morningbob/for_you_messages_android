@@ -7,7 +7,7 @@
     <data>
         <variable
             name="contact"
-            type="com.bitpunchlab.android.foryoumessages.models.Contact" />
+            type="com.bitpunchlab.android.foryoumessages.models.ContactEntity" />
     </data>
 
     <ScrollView

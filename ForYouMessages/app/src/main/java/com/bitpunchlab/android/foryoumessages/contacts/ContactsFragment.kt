@@ -43,6 +43,7 @@ class ContactsFragment : Fragment() {
     private var userToBeUpdated = UserEntity()
     private lateinit var coroutineScope: CoroutineScope
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -74,13 +75,20 @@ class ContactsFragment : Fragment() {
             firebaseClient.currentUserEntity.value!!.userID))
             .get(ContactsViewModel::class.java)
 
+        //contactsViewModel.getUserLocalDatabase(firebaseClient.currentUserEntity.value!!.userID)
+
+
+
         // as the contactsVM will get the user entity object from the local database,
         // we need to observe whenever the it changes, to get our contacts
         contactsViewModel.user.observe(viewLifecycleOwner, Observer { currentUser ->
+
             currentUser?.let {
+                Log.i("contacts VM", "observed current user not null")
                 contacts.value = currentUser.contactLists.find {
                     it.contactList.listName == "contacts"
                 }
+                Log.i("contacts.value", "size: ${contacts.value!!.contacts.size}")
 
             }
         })
@@ -357,6 +365,7 @@ class ContactsFragment : Fragment() {
             // user entity anymore.  we can just modify the ContactListWithContacts
             // maybe, we can just modify the ContactListWithContacts, and save only that object
             originalContactList.contacts = contactsUpdated
+            // now save it to database
 
             //userToBeUpdated = contactsViewModel.user.value!!.copy()
             //userToBeUpdated.contacts = contactsUpdated

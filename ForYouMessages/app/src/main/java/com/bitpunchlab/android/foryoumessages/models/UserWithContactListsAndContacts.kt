@@ -12,5 +12,5 @@ data class UserWithContactListsAndContacts(
         parentColumn = "userID",
         entityColumn = "userCreatorId"
     )
-    val contactLists: List<ContactListWithContacts>
+    val contactLists: List<ContactListWithContacts> = emptyList()
 )

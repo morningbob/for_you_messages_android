@@ -9,8 +9,11 @@ import com.bitpunchlab.android.foryoumessages.models.*
 import kotlinx.coroutines.InternalCoroutinesApi
 
 @Database(entities = [UserEntity::class, ContactEntity::class, ContactList::class,
-                     ContactListWithContacts::class, ContactListContactCrossRef::class,
-                     UserWithContactListsAndContacts::class], version = 2, exportSchema = false)
+                    ContactListContactCrossRef::class
+                     ], version = 2, exportSchema = false)
+//@Database(entities = [UserEntity::class, ContactEntity::class, ContactList::class,
+//    ContactListWithContacts::class, ContactListContactCrossRef::class,
+//    UserWithContactListsAndContacts::class], version = 2, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class ForYouDatabase : RoomDatabase() {
     abstract val userDAO: UserDAO
