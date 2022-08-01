@@ -100,6 +100,7 @@ class MainFragment : Fragment() {
                 true
             }
             R.id.toContacts -> {
+                // we need to wait for the contacts fragment content ready
                 findNavController().navigate(R.id.action_MainFragment_to_contactsFragment)
                 true
             }

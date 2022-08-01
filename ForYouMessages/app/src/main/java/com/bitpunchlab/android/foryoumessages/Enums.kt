@@ -25,6 +25,7 @@ enum class LoginAppState {
 }
 
 enum class RequestContactAppState {
+    NORMAL,
     CONTACT_NOT_FOUND,
     PHONE_NOT_FOUND,
     ASK_CONFIRMATION,

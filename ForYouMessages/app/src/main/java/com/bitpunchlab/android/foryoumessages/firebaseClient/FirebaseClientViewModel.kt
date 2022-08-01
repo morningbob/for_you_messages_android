@@ -231,9 +231,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         auth.addAuthStateListener(authStateListener)
         _allValid.value = arrayListOf(0,0,0,0,0)
         localDatabase = ForYouDatabase.getInstance(activity.applicationContext)
-        //contactsViewModel = ViewModelProvider(activity as ViewModelStore,
-        //    ContactsViewModelFactory(localDatabase, "XX"))
-        //    .get(ContactsViewModel::class.java)
 
         // we'll set allValid a 1 entry if the field is valid
         // we also check if other fields are also valid by checking if the allValid arraylist sum to 5
@@ -324,20 +321,17 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
             }
         })
 
-
-
         requestContactAppState.observe(activity as LifecycleOwner, Observer { appState ->
             when (appState) {
                 RequestContactAppState.CONFIRMED_REQUEST -> {
                     coroutineScope.launch {
                         if (triggerCloudFunction(
-                            //inviterEmail = auth.currentUser!!.email!!,
-                            //inviteeEmail = inviteeContact!!.contactEmail,
                             inviterContact = currentUserContact.value!!,
                             inviteeContact = appInviteeContact!!,
                             requestName = "requestContact"
                         )) {
                             requestContactAppState.postValue(RequestContactAppState.REQUEST_SENT)
+                            Log.i("requestContact", "triggering cloud function success")
                         } else {
                             requestContactAppState.postValue(RequestContactAppState.SERVER_NOT_AVAILABLE)
                         }
@@ -394,8 +388,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 else -> 0
             }
         })
-
-
     }
 
     private fun isEmailValid(email: String) : Boolean {
@@ -663,8 +655,6 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
                 }
         }
 
-
-
     fun clearSameEmail() {
         userEmail.value = ""
     }
@@ -930,17 +920,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         // and add to it.  get the contact list id
         // create cross ref object for every contact found, and save the contacts object
 
-
-        //createContactCrossRefs(user, contacts, invites, requestedContacts, acceptedContacts,
-        //    rejectedContacts, deletedContacts
-        //)
-
         return UserEntity(userID = id, userName = name, userEmail = email, userPhone = phone)
-            //contacts = contacts, requestedContacts = requestedContacts,
-            //acceptedContacts = acceptedContacts, invites = invites,
-            //rejectedContacts = rejectedContacts, deletedContacts = deletedContacts)
-        //}
-        //return null
     }
 
     // when we first save the user in the local database, we create the corresponding contact lists
@@ -1026,7 +1006,7 @@ class FirebaseClientViewModel(val activity: Activity) : ViewModel() {
         allCrossRef.addAll(createEachCrossRefsExistingUser(existingUser!!.contactLists, deletedContacts, "deletedContacts"))
         }
         localDatabase.userDAO.insertContactListContactCrossRefs(*allCrossRef.toTypedArray())
-
+        // at this point, it is ready to navigate to contacts fragment
     }
 
     private fun createEachCrossRefsExistingUser(contactLists: List<ContactListWithContacts>, contacts: List<Contact>,

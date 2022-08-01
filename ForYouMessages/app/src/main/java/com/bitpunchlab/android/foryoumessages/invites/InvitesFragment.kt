@@ -64,7 +64,13 @@ class InvitesFragment : Fragment() {
         contactsViewModel.user.observe(viewLifecycleOwner, Observer { currentUser ->
             currentUser?.let {
                 //contactsViewModel.invites.value = currentUser.invites
-                invites.value = currentUser.invites
+                //invites.value = currentUser.contactLists.
+                val invitesList = currentUser.contactLists.find {
+                    it.contactList.listName == "invites"
+                }
+                invitesList?.let {
+                    invites.value = invitesList.contacts
+                }
             }
         })
 

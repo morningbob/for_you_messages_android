@@ -29,4 +29,15 @@ interface UserDAO {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertContactList(vararg contactList: ContactList)
+
+    @Delete
+    fun deleteContact(contact: ContactEntity)
+/*
+    @Query("SELECT * FROM user_table WHERE :id == listId AND :email == contactEmail LIMIT 1")
+    fun getContactCrossRef(id: Long, email: String) : ContactListContactCrossRef
+
+    @Delete
+    fun deleteContactCrossRef(id: Long, email: String)
+*/
+
 }

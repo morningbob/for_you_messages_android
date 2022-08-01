@@ -20,10 +20,7 @@ import com.bitpunchlab.android.foryoumessages.database.ForYouDatabase
 import com.bitpunchlab.android.foryoumessages.databinding.FragmentContactsBinding
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModel
 import com.bitpunchlab.android.foryoumessages.firebaseClient.FirebaseClientViewModelFactory
-import com.bitpunchlab.android.foryoumessages.models.Contact
-import com.bitpunchlab.android.foryoumessages.models.ContactEntity
-import com.bitpunchlab.android.foryoumessages.models.ContactListWithContacts
-import com.bitpunchlab.android.foryoumessages.models.UserEntity
+import com.bitpunchlab.android.foryoumessages.models.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.InternalCoroutinesApi
@@ -42,11 +39,10 @@ class ContactsFragment : Fragment() {
     private var contacts = MutableLiveData<ContactListWithContacts>()
     private var userToBeUpdated = UserEntity()
     private lateinit var coroutineScope: CoroutineScope
-
+    private var chosenContact: ContactEntity? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
     }
 
     @OptIn(InternalCoroutinesApi::class)
@@ -75,10 +71,6 @@ class ContactsFragment : Fragment() {
             firebaseClient.currentUserEntity.value!!.userID))
             .get(ContactsViewModel::class.java)
 
-        //contactsViewModel.getUserLocalDatabase(firebaseClient.currentUserEntity.value!!.userID)
-
-
-
         // as the contactsVM will get the user entity object from the local database,
         // we need to observe whenever the it changes, to get our contacts
         contactsViewModel.user.observe(viewLifecycleOwner, Observer { currentUser ->
@@ -103,6 +95,7 @@ class ContactsFragment : Fragment() {
         contactsViewModel.chosenContact.observe(viewLifecycleOwner, Observer { chosen ->
             chosen?.let {
                 contactToBeDeleted = chosen
+                //chosenContact = chosen//.copy()
                 val contact = ContactEntity(
                     contactEmail = chosen.contactEmail,
                     contactName = chosen.contactName,
@@ -125,9 +118,6 @@ class ContactsFragment : Fragment() {
 
         // we get the latest contact list from firestore and save it in contact view model
         // the adapter only pay attention to contact view model
-        firebaseClient.userContacts.observe(viewLifecycleOwner, Observer { contacts ->
-            //contactsViewModel.contacts.value = contacts
-        })
 
         firebaseClient.loginAppState.observe(viewLifecycleOwner, loginAppStateObserver)
 
@@ -215,11 +205,12 @@ class ContactsFragment : Fragment() {
                         phone.count() > 13 ||
                     !PhoneNumberUtils.isGlobalPhoneNumber(phone)) {
                     Log.i("request alert", "invalid phone number.")
-                    // empty phone alert
+                    // empty phone number alert
+                    // here we check if the phone number is user's phone or the phone already in
+                    // contacts too
                     invalidPhoneAlert()
                 } else {
-                    //val phone = phoneEdittext.text.toString()
-                    // search for the phone number in database\
+                    // search for the phone number in database
                     Log.i("request alert", "valid phone number.")
                     firebaseClient.requestContact(phone)
                 }
@@ -256,6 +247,16 @@ class ContactsFragment : Fragment() {
             }
             RequestContactAppState.CONTACT_NOT_FOUND -> {
                 contactNotFoundAlert()
+            }
+            RequestContactAppState.REQUEST_SENT -> {
+                // at this stage, the firestore finished writing the doc
+                // we add the request in the request list
+                Log.i("contacts fragment", "request sent successfully")
+                firebaseClient.appInviteeContact?.let { contact ->
+                    Log.i("chosen contact", "about to process request for local database")
+                    val contactEntity = contactToContactEntity(contact)
+                    processRequestContactForLocalDatabase(contactEntity)
+                }
             }
             else -> 0
         }
@@ -326,10 +327,8 @@ class ContactsFragment : Fragment() {
         confirmAlert.setPositiveButton(getString(R.string.confirm),
             DialogInterface.OnClickListener { dialog, button ->
                 firebaseClient.deleteContactAppState.value = DeleteContactAppState.CONFIRMED_DELETION
-                // here, we modify the user entity object, delete the contact and save in local
-                // database
-                //contactsViewModel.removeContact(contact)
 
+                processDeleteContactForInviterForLocalDatabase(contact)
             })
 
         confirmAlert.setNegativeButton(getString(R.string.cancel),
@@ -353,29 +352,56 @@ class ContactsFragment : Fragment() {
         }
     }
 
-    private fun updateUserInDatabase(contactToRemove: ContactEntity) {
-        var originalContactList = contactsViewModel.user.value!!.contactLists.find {
-            it.contactList.listName == "contacts"
-        }!!
-        if (originalContactList.contacts.isNotEmpty()) {
-            var contactsUpdated = originalContactList.contacts.toMutableList()
-            contactsUpdated.remove(contactToRemove)
-
-            // so we are not doing it this way, the contacts lists are not the fields of
-            // user entity anymore.  we can just modify the ContactListWithContacts
-            // maybe, we can just modify the ContactListWithContacts, and save only that object
-            originalContactList.contacts = contactsUpdated
-            // now save it to database
-
-            //userToBeUpdated = contactsViewModel.user.value!!.copy()
-            //userToBeUpdated.contacts = contactsUpdated
-
-            coroutineScope.launch {
-                localDatabase.userDAO.insertUser(userToBeUpdated)
-                Log.i("update user", "user saved in database")
+    // in the case of request contact, we'll save the contact first
+    // then create the cross ref object to link the contact with the request contact list.
+    // then save that cross ref.  we'll see if the interface shows the change.
+    private fun processRequestContactForLocalDatabase(contact: ContactEntity) {
+        coroutineScope.launch {
+            // save contact
+            localDatabase.userDAO.insertContacts(contact)
+            // create cross ref
+            val requestContactList = contactsViewModel.user.value!!.contactLists.find {
+                it.contactList.listName == "requestedContacts"
 
             }
-        }
+            val requestContactListId = requestContactList?.contactList?.listId
 
+            requestContactListId?.let {
+                Log.i("process", "found the list id")
+                val crossRef = ContactListContactCrossRef(listId = requestContactListId,
+                contactEmail = contact.contactEmail)
+                localDatabase.userDAO.insertContactListContactCrossRefs(crossRef)
+                // refresh the user
+                //contactsViewModel.getUserLocalDatabase(contactsViewModel.user.value!!.user.userID)
+            }
+            if (requestContactListId == null) {
+                Log.i("process", "can't find the list id")
+            }
+            firebaseClient.requestContactAppState.postValue(RequestContactAppState.NORMAL)
+        }
+    }
+
+    private fun processDeleteContactForInviterForLocalDatabase(contact: ContactEntity) {
+        coroutineScope.launch {/*
+            // we delete the contact from contacts list before we delete the contact itself
+            val contactsList = contactsViewModel.user.value!!.contactLists.find {
+                it.contactList.listName == "contacts"
+            }
+            val contactsListId = contactsList?.contactList?.listId
+            // delete the cross ref
+            contactsListId?.let {
+                localDatabase.userDAO.deleteContactCrossRef(id = contactsListId,
+                    email = contact.contactEmail)
+                Log.i("process", "should just deleted the cross ref")
+            }
+            */
+            // now, we can delete the contact
+            localDatabase.userDAO.deleteContact(contact)
+            Log.i("process", "should just deleted the contact")
+        }
+    }
+
+    private fun contactToContactEntity(contact: Contact) : ContactEntity {
+        return ContactEntity(contact.contactEmail, contact.contactName, contact.contactPhone)
     }
 }
